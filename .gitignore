@@ -1,0 +1,32 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Secrets - never commit (Wi-Fi passwords, tokens)
+.env
+secrets.h
+*.secret
+
+# Arduino / PlatformIO build output
+.pio/
+build/
+*.elf
+*.bin
+
+# Node / Python (dashboard)
+node_modules/
+__pycache__/
+*.pyc
+.venv/
+
+# CAD autosaves / backups (keep the source model, STL and STEP exports)
+*.bak
+*.autosave
+*~
+.~lock.*
+
+# Big raw media - keep videos on a phone / shared drive, link them in tests/test-results.md
+*.mp4
+*.mov
