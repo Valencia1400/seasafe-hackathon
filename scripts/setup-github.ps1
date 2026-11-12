@@ -9,16 +9,18 @@ param(
   [Parameter(Mandatory = $true)][string]$Owner,
   [string]$Repo = "seasafe-hackathon"
 )
-$ErrorActionPreference = "Stop"
+$ErrorActionPreference = "Continue"   # Windows PowerShell 5.1 treats native stderr as errors under "Stop"
 $full = "$Owner/$Repo"
 
+if (-not (Get-Command gh -ErrorAction SilentlyContinue)) { throw "GitHub CLI not installed. Run: winget install GitHub.cli  (then reopen PowerShell)" }
 gh auth status
 if ($LASTEXITCODE -ne 0) { throw "Run 'gh auth login' first." }
 
 # 1. Repo (private) + push all branches
-gh repo view $full 2>$null
+gh repo view $full *> $null
 if ($LASTEXITCODE -eq 0) { throw "$full already exists - stopping so nothing is overwritten." }
 gh repo create $full --private --source . --remote origin --push
+if ($LASTEXITCODE -ne 0) { throw "Repo creation failed - see message above." }
 foreach ($b in "feature/cad", "feature/electronics", "feature/dashboard") {
   git push -u origin $b
 }
