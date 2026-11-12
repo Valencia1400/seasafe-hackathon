@@ -2,6 +2,9 @@
 
 This is our evidence that AI **accelerated** the engineering and that we **verified** it instead of trusting it. Log every meaningful AI use (a line is enough; screenshots go in Discord and are linked here). Owners: Person 3 + Person 5. Everyone adds entries.
 
+## Raw logs vs. this file
+Raw, per-person records go in [`ai-log/`](ai-log/README.md) (automatic with the `ai-logger` mod in Claude Code, by hand otherwise). This file is the **curated** log: Persons 3 and 5 copy the meaningful entries here, with verification filled in.
+
 ## How to log an entry
 Copy the template, fill it in right after the AI use. Be honest about errors - mistakes caught are the best evidence.
 

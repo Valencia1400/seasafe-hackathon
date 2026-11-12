@@ -1,0 +1,6 @@
+# Same line endings for everyone (Windows and Mac), so diffs stay clean.
+* text=auto
+
+# Personal AI logs are append-only: when two branches both add entries,
+# Git keeps both instead of raising a merge conflict.
+docs/ai-log/*.md merge=union
