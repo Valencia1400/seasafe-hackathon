@@ -2,6 +2,8 @@
 
 Read your own section, then start. Raise a blocker at the table after 30 minutes at most. Log every AI use (see [ai-process.md](ai-process.md)).
 
+**Groups and copy-paste AI prompts:** [groups-and-prompts.md](groups-and-prompts.md) - CAD (Person 1), Electronics (Persons 2 + 4), Software (Persons 3 + 5).
+
 ## Everyone (first 15 minutes)
 1. `git pull` (or open the repo on github.com).
 2. Read the README and [requirements.md](requirements.md) section 2.
