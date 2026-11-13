@@ -156,7 +156,7 @@
 <main class="grid">
   <!-- Camera: the one live hardware feed -->
   <section class="panel cam" aria-labelledby="h-cam">
-    <h2 id="h-cam">Camera <span class="chip plain" id="camtag">Not configured</span> <button id="camtoggle" class="small cam-toggle" hidden>Turn camera off</button></h2>
+    <h2 id="h-cam">Camera <span class="chip plain" id="camtag">Not configured</span> <button id="camflip" class="small cam-toggle" hidden>Flip 180&deg;</button> <button id="camtoggle" class="small" hidden>Turn camera off</button></h2>
     <div id="caminput" class="input-badge" hidden></div>
     <div class="frame">
       <img id="camimg" alt="Annotated video from the boat camera">
@@ -367,11 +367,16 @@ const CAM_MSG = {
   OFF: ["<b>Camera off</b>Turned off from this dashboard. Press Turn camera on to resume.", ""],
 };
 $("camtoggle").onclick = () => send(lastCam === "OFF" ? "camera-on" : "camera-off");
-let lastCam = null;
+let lastCam = null, viewerUrl = null;
+$("camflip").onclick = async () => {   // the viewer rotates the image before detection, so the boxes stay right
+  try { await fetch(viewerUrl + "/flip", {method: "POST"}); $("msg").textContent = ""; }
+  catch (e) { $("msg").textContent = "Cannot reach the camera viewer to flip the image."; }
+};
 function renderCamera(c){
   const on = c.configured, st = c.status;
-  lastCam = st;
+  lastCam = st; viewerUrl = c.viewer_url;
   $("camtoggle").hidden = !on;
+  $("camflip").hidden = !on || st === "OFF";
   $("camtoggle").textContent = st === "OFF" ? "Turn camera on" : "Turn camera off";
   $("camtag").textContent = on ? "Viewer " + c.viewer_url.replace(/^https?:\/\//, "") : "Not configured";
   const inp = $("caminput");

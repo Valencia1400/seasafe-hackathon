@@ -36,3 +36,6 @@ dashboard/logs/
 
 # YOLO weights (downloaded on first run of vision/viewer.py)
 *.pt
+
+# YOLOE text encoder, downloaded on first run (242 MB)
+mobileclip*.ts

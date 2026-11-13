@@ -61,6 +61,7 @@ reach it, e.g. the viewer and the dashboard on two different laptops. All respon
 | `/stream.mjpg` | Annotated video (boxes and labels drawn in), MJPEG | `<img src="http://127.0.0.1:8001/stream.mjpg">` |
 | `/frame.jpg` | Latest annotated frame (503 until the first frame) | For a snapshot or an evidence photo |
 | `/` | Test page: video + live JSON | For checking without the dashboard |
+| `POST /flip` | `{"flip": true}` | Toggles a 180-degree rotation (camera mounted upside down). Start with `--flip` to begin rotated. `flip` in `/detections` shows the current setting |
 
 ## 4. Detection message (`/detections`)
 

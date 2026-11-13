@@ -88,7 +88,7 @@ PAGE = b"""<!doctype html><meta name=viewport content="width=device-width"><titl
 <script>setInterval(async()=>{try{d.textContent=JSON.stringify(await(await fetch('/detections')).json(),null,1)}catch(e){d.textContent=e}},500)</script>"""
 
 
-def make_handler(out):
+def make_handler(out, flip):
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
             pass
@@ -105,6 +105,13 @@ def make_handler(out):
         def _send(self, code, ctype, body):
             self._head(code, ctype, len(body))
             self.wfile.write(body)
+
+        def do_POST(self):
+            if self.path.split("?")[0] == "/flip":   # toggle 180-degree rotation (camera mounted upside down)
+                flip["on"] = not flip["on"]
+                self._send(200, "application/json", json.dumps({"flip": flip["on"]}).encode())
+            else:
+                self._send(404, "text/plain", b"not found")
 
         def do_GET(self):
             path = self.path.split("?")[0]
@@ -143,6 +150,7 @@ def main():
                     help="yoloe-* = detect the --prompts words; any other YOLO (e.g. yolo26n.pt) = COCO classes")
     ap.add_argument("--prompts", default=WATER_PROMPTS, help="comma-separated things to look for (YOLOE models only)")
     ap.add_argument("--conf", type=float, default=0.3, help="minimum confidence")
+    ap.add_argument("--flip", action="store_true", help="rotate the image 180 degrees (camera mounted upside down)")
     ap.add_argument("--imgsz", type=int, default=640, help="inference size; 320 is ~4x faster on a slow computer")
     ap.add_argument("--host", default="127.0.0.1", help="0.0.0.0 to serve other machines on the network")
     ap.add_argument("--port", type=int, default=8001)
@@ -152,7 +160,8 @@ def main():
     cam = Hub()
     out = Hub((None, {"t": "det", "seq": 0, "src": src, "cam": "DOWN", "dets": []}))
     threading.Thread(target=read_camera, args=(args.source, cam), daemon=True).start()
-    server = ThreadingHTTPServer((args.host, args.port), make_handler(out))
+    flip = {"on": args.flip}   # also toggled at runtime by POST /flip
+    server = ThreadingHTTPServer((args.host, args.port), make_handler(out, flip))
     server.daemon_threads = True
     threading.Thread(target=server.serve_forever, daemon=True).start()
     print(f"Reading {args.source}  ->  open http://{args.host}:{args.port}/")
@@ -171,10 +180,12 @@ def main():
     seq, fps, last, last_print = 0, 0.0, time.time(), 0.0
     while True:
         seq, frame, t = cam.next(seq, 1.0)
-        msg = {"t": "det", "seq": seq, "ts": round(t, 3), "src": src, "model": args.model}
+        msg = {"t": "det", "seq": seq, "ts": round(t, 3), "src": src, "model": args.model, "flip": flip["on"]}
         if frame is None or time.time() - t > STALE_S:
             out.put((None, {**msg, "cam": "DOWN", "dets": []}))
             continue
+        if flip["on"]:
+            frame = cv2.rotate(frame, cv2.ROTATE_180)   # before YOLO: it detects best on upright images
         t0 = time.perf_counter()
         r = model.predict(frame, imgsz=args.imgsz, conf=args.conf, classes=wanted, verbose=False)[0]
         infer_ms = (time.perf_counter() - t0) * 1000

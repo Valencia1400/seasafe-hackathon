@@ -33,6 +33,7 @@ Then:
 .venv/bin/python viewer.py                                        # normal router: camera found as seasafe-cam.local
 .venv/bin/python viewer.py --source http://192.168.4.1:81/stream  # camera in its own-network mode
 .venv/bin/python viewer.py --source 0                             # laptop webcam, no boat needed
+.venv/bin/python viewer.py --flip ...                            # camera mounted upside down (or press Flip 180° in the dashboard)
 ```
 Open http://127.0.0.1:8001/. The first run downloads the YOLOE weights (`yoloe-26s-seg.pt`) and installs its text encoder (CLIP), so do it once with
 internet before the demo. On a slow laptop add `--imgsz 320` for about 4x the speed.
