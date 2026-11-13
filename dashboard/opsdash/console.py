@@ -18,9 +18,10 @@ TRACK_POINTS = 300
 
 
 class OperatorConsole:
-    def __init__(self, now, wall=time.time, config=None):
+    def __init__(self, now, wall=time.time, config=None, camera=None):
         self._wall = wall
         self.cfg = (config or Config()).validate()
+        self.camera = camera   # optional CameraMonitor; separate from the control path, never affects the mission
         self.restart(now)
 
     # -- (re)start the whole simulation --------------------------------------
@@ -211,6 +212,7 @@ class OperatorConsole:
         snap = self.mission.snapshot()
         snap["allowed"]["start"] = snap["allowed"]["start"] and self.comms_ok and self.last_state == p.OK
         cfgd = self.cfg.to_dict()
+        cam = self.camera.snapshot() if self.camera else {"configured": False, "viewer_url": None, "status": "NOT_CONFIGURED"}
         t = self.telemetry
         stale = t is not None and not self.comms_ok
         warnings = []
@@ -222,6 +224,8 @@ class OperatorConsole:
             warnings.append("LEAK DETECTED")
         if t and not t.get("fix"):
             warnings.append("GPS: NO FIX")
+        if cam["status"] in ("CAMERA_DOWN", "VIEWER_UNREACHABLE", "STALE", "BAD_RESPONSE"):
+            warnings.append("CAMERA: " + cam["status"].replace("_", " ") + " (motor control unaffected)")
         snap.update({
             "mode": "SIMULATION",
             "comms": "WAITING" if t is None else ("OK" if self.comms_ok else "LOST"),
@@ -238,6 +242,6 @@ class OperatorConsole:
             "mission_elapsed_s": None if self.started_at is None or self.mission.state != m.RUNNING
             else round(now - self.started_at),
             "track": self.track,
-            "camera": {"viewer_url": cfgd["camera_viewer_url"]},
+            "camera": cam,
         })
         return snap

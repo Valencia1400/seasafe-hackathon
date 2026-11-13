@@ -9,6 +9,8 @@ import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from .camera import CameraMonitor
+from .config import Config
 from .console import OperatorConsole
 
 STATIC = Path(__file__).resolve().parent / "static"
@@ -20,8 +22,14 @@ class Dashboard:
 
     def __init__(self, config=None):
         self.lock = threading.Lock()
-        self.console = OperatorConsole(time.monotonic(), config=config)
+        config = config or Config()
+        self.camera = CameraMonitor(config.camera_viewer_url, log=self._log_event)
+        self.console = OperatorConsole(time.monotonic(), config=config, camera=self.camera)
         self.running = True
+
+    def _log_event(self, text, level="info"):
+        with self.lock:
+            self.console.mission.log(text, level)
 
     def loop(self):
         while self.running:
@@ -98,6 +106,7 @@ def make_handler(dash):
 def serve(host="127.0.0.1", port=8000, config=None):
     dash = Dashboard(config)
     threading.Thread(target=dash.loop, daemon=True).start()
+    dash.camera.start()          # own thread: a slow or dead viewer cannot block the dashboard
     server = ThreadingHTTPServer((host, port), make_handler(dash))
     print(f"SeaGuardian operator dashboard (SIMULATION) on http://{host}:{port}  - Ctrl+C to stop")
     try:
@@ -106,4 +115,5 @@ def serve(host="127.0.0.1", port=8000, config=None):
         pass
     finally:
         dash.running = False
+        dash.camera.stop()
         server.server_close()

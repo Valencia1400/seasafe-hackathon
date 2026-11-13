@@ -56,6 +56,11 @@ class Config:
         url = self.camera_viewer_url
         if url is not None and not (isinstance(url, str) and url.startswith(("http://", "https://"))):
             raise ValueError("camera_viewer_url must be None or start with http:// or https://")
+        if url is not None:
+            rest = url.split("://", 1)[1]
+            if "/" in rest.rstrip("/") or "?" in rest or "#" in rest or " " in url:
+                raise ValueError("camera_viewer_url must be the viewer's base address, e.g. http://127.0.0.1:8001 "
+                                 "(never the ESP32 :81/stream: it serves one client and only viewer.py may use it)")
         return self
 
     @classmethod

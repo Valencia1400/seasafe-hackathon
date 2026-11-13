@@ -76,14 +76,16 @@
 
   <!-- B. Camera -->
   <section class="panel">
-    <h2>B. Camera view <span class="tag future" id="camtag">PLACEHOLDER</span></h2>
+    <h2>B. Camera view <span class="tag future" id="camtag">NOT CONFIGURED</span></h2>
+    <div id="caminput" style="display:none;padding:6px 10px;border-radius:4px;font-weight:800;margin-bottom:8px"></div>
     <div class="placeholder" id="camph"><b>NO CAMERA CONNECTED</b>Start <code>vision/viewer.py</code>, then run the dashboard with <code>--camera-viewer http://127.0.0.1:8001</code>. This is not live video.</div>
     <div id="camwrap" style="display:none">
-      <img id="camimg" alt="camera stream" style="width:100%;border-radius:6px;background:#000;display:block">
+      <img id="camimg" alt="annotated camera stream" style="width:100%;border-radius:6px;background:#000;display:block;min-height:120px">
       <div id="camstat" style="margin-top:8px;font-weight:700"></div>
-      <div id="camdets" class="note"></div>
+      <div id="camdets" style="margin-top:6px"></div>
+      <div id="cammeta" class="note"></div>
     </div>
-    <div class="note">Video and detections come from the vision viewer, not from the control ESP32. The camera is not part of the safety chain.</div>
+    <div class="note">Object detection only: potential objects for operator review. Not an assessment of harbour damage or of any emergency. Confidence is the model's own score, not verified accuracy. Video and detections come from the vision viewer; the camera is not part of the motor safety chain, and detections never control the motor or rudder.</div>
   </section>
 
   <!-- C. IMU -->
@@ -233,32 +235,48 @@ function drawTrack(pts){
     <text x="195" y="12" text-anchor="end" font-size="10" fill="#8aa3b5">N &uarr; &nbsp; ${span.toFixed(0)} m wide</text>`;
 }
 
-// ---- camera: show vision/viewer.py output (only when a viewer address is configured) ----
-let camUrl = null, camTimer = null;
-function setupCamera(url){
-  if (url === camUrl) return;
-  camUrl = url; clearInterval(camTimer);
-  $("camph").style.display = url ? "none" : ""; $("camwrap").style.display = url ? "" : "none";
-  $("camtag").textContent = url ? "VIEWER " + url : "PLACEHOLDER";
-  if (!url) { $("camimg").removeAttribute("src"); return; }
-  $("camimg").src = url + "/stream.mjpg";
-  pollCamera(); camTimer = setInterval(pollCamera, 500);
-}
-function camStatus(text, cls){ $("camstat").textContent = text; $("camstat").className = cls || ""; }
-async function pollCamera(){
-  try {
-    const d = await (await fetch(camUrl + "/detections", {cache: "no-store"})).json();
-    const test = d.src !== "esp32";
-    const people = (d.dets || []).filter(x => x.cls === "person");
-    $("camdets").textContent = d.cam === "DOWN" ? "" : ((d.dets || []).map(x => `${x.cls} ${Math.round(x.conf * 100)}%`).join(", ") || "no detections") + (d.fps ? `  |  ${d.fps} fps` : "");
-    if (d.cam === "DOWN") camStatus("CAMERA DOWN: viewer receives no frames" + (test ? " (TEST input)" : ""), "bad");
-    else if (people.length) camStatus(`PERSON DETECTED (${people.length})` + (test ? " - TEST INPUT, not the boat camera" : ""), "bad");
-    else if (test) camStatus(`TEST INPUT (${d.src}): not the boat camera`, "warn");
-    else camStatus("Boat camera (ESP32 #1) via viewer", "ok");
-  } catch (e) {
-    $("camdets").textContent = "";
-    camStatus("VIEWER NOT REACHABLE at " + camUrl, "bad");
+// ---- camera: render the state the dashboard server validated from vision/viewer.py ----
+let camShown = false;
+const esc = t => String(t).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+function renderCamera(c){
+  const on = c.configured, st = c.status;
+  $("camph").style.display = on ? "none" : ""; $("camwrap").style.display = on ? "" : "none";
+  $("camtag").textContent = on ? "VIEWER " + c.viewer_url : "NOT CONFIGURED";
+  const inp = $("caminput");
+  if (!on || !c.input) { inp.style.display = "none"; }
+  else {
+    inp.style.display = "";
+    const real = c.input === "REAL CAMERA";
+    inp.textContent = real ? "REAL CAMERA (ESP32 #1): source of the video, not proof the detections are correct"
+                           : `TEST INPUT (${c.src}): NOT THE BOAT CAMERA`;
+    inp.style.background = real ? "var(--ok)" : "var(--warn)"; inp.style.color = "#000";
   }
+  if (!on) return;
+  const showVideo = st === "OK" || st === "STALE";
+  if (showVideo && !camShown) { $("camimg").src = ""; $("camimg").src = c.stream_url; }   // (re)connect the stream
+  if (!showVideo && camShown) $("camimg").src = "";
+  camShown = showVideo;
+  $("camimg").style.display = showVideo ? "block" : "none";
+  $("camimg").style.opacity = st === "STALE" ? 0.35 : 1;
+  const msgs = {
+    OK: ["", ""],
+    CONNECTING: ["Connecting to the camera viewer...", "warn"],
+    CAMERA_DOWN: ["CAMERA DOWN: the viewer receives no frames. Detections unavailable.", "bad"],
+    VIEWER_UNREACHABLE: ["CAMERA VIEWER NOT REACHABLE. Video and detections unavailable.", "bad"],
+    STALE: ["FROZEN: detections are not updating. Not live data.", "bad"],
+    BAD_RESPONSE: ["Camera viewer sent an unreadable response. Detections unavailable.", "bad"],
+  };
+  const [text, cls] = msgs[st] || ["", ""];
+  $("camstat").textContent = text; $("camstat").className = cls;
+  const dets = c.detections || [];
+  $("camdets").innerHTML = st !== "OK" ? "" : dets.length
+    ? dets.map(d => `<div class="${d.cls === "person" ? "bad" : "warn"}">${esc(d.label)} &mdash; ${d.conf_pct}% <span class="note">(model score)</span></div>`).join("")
+      + `<div class="note">${esc(c.notice)}</div>`
+    : `<div class="note">No objects detected in the current frame.</div>`;
+  const meta = [];
+  if (st === "OK") { if (c.fps !== null) meta.push(`${c.fps} detections/s`); if (c.infer_ms !== null) meta.push(`${c.infer_ms} ms inference`); if (c.model) meta.push(esc(c.model)); }
+  if (c.ignored) meta.push(`${c.ignored} unreadable detection(s) ignored`);
+  $("cammeta").innerHTML = meta.join(" | ");
 }
 
 async function refresh(){
@@ -266,7 +284,7 @@ async function refresh(){
   try { s = await (await fetch("/api/state")).json(); }
   catch (e) { $("banner").style.display = "block"; $("banner").textContent = "Dashboard cannot reach the server"; return; }
   lastState = s.state;
-  setupCamera(s.camera.viewer_url);
+  renderCamera(s.camera);
   const t = s.telemetry, stale = s.telemetry_stale;
   $("state").textContent = s.state; $("state").className = s.state;
   $("elapsed").textContent = s.mission_elapsed_s === null ? "" : `Mission time ${s.mission_elapsed_s} s (simulated)`;
