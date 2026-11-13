@@ -1,9 +1,9 @@
 // SeaSafe camera firmware: Seeed Studio XIAO ESP32S3 Sense -> MJPEG stream + JSON status over Wi-Fi.
 // Endpoints and data formats: vision/INTEGRATION.md. Detection runs in Python (vision/viewer.py), not here.
-// Status: compiles with ESP32 core 3.3.12 (13 Nov); NOT yet run on the board.
+// Status: runs on the board (13 Nov): OV3660 camera, joined the iPhone hotspot, served /status and /stream.
 //
 // Board: "XIAO_ESP32S3" (ESP32 Arduino core 3.x), Tools > PSRAM: "OPI PSRAM" (needed for the camera).
-// Wi-Fi: copy secrets.example.h to secrets.h (git-ignored) and fill in a 2.4 GHz network.
+// Wi-Fi: joins the team hotspot below by default. Other network: copy secrets.example.h to secrets.h (git-ignored).
 //        No secrets.h, or the network is not found within 15 s -> the board starts its own
 //        access point "SeaSafe-Cam" (password in AP_PASS) and serves on http://192.168.4.1
 //
@@ -23,8 +23,8 @@
 #include "secrets.h"
 #endif
 #ifndef WIFI_SSID
-#define WIFI_SSID ""
-#define WIFI_PASS ""
+#define WIFI_SSID "Armin \xE2\x80\x93 iPhone"  // iPhone names its hotspot with an EN DASH (–), not "-"
+#define WIFI_PASS "password"
 #endif
 #ifndef AP_PASS
 #define AP_PASS "seasafe123"  // min. 8 characters (WPA2)
@@ -58,6 +58,7 @@ static const char *STREAM_TYPE = "multipart/x-mixed-replace;boundary=" BOUNDARY;
 static const char *PART_HDR = "\r\n--" BOUNDARY "\r\nContent-Type: image/jpeg\r\nContent-Length: %u\r\nX-Timestamp: %lu\r\n\r\n";
 
 static bool apMode = false;
+static String wifiProblem;  // why joining failed + the networks the board could see; repeated on serial
 static const char *sensorName = "unknown";
 static volatile bool streaming = false;
 static volatile uint32_t framesSent = 0;
@@ -113,7 +114,12 @@ static void startWifi() {
     }
     Serial.println();
     if (WiFi.status() == WL_CONNECTED) return;
-    Serial.println("Could not join (2.4 GHz only, check name/password). Starting own access point.");
+    // 1 = name not found (typo, or iPhone hotspot without "Maximize Compatibility" = 5 GHz); 4 or 6 = usually wrong password
+    wifiProblem = "could not join '" WIFI_SSID "', status " + String(WiFi.status()) + " (1 = name not found, 4/6 = wrong password?). Seen:";
+    WiFi.disconnect();
+    int n = WiFi.scanNetworks();
+    for (int i = 0; i < n; i++) wifiProblem += " '" + WiFi.SSID(i) + "'";
+    Serial.println(wifiProblem + "\nStarting own access point.");
   }
   apMode = true;
   WiFi.mode(WIFI_AP);
@@ -225,5 +231,6 @@ void loop() {
   Serial.printf("[%s] http://%s/  stream: http://%s:81/stream  (%s.local)  sensor=%s streaming=%d fps=%.1f\n",
                 apMode ? "AP SeaSafe-Cam" : "STA", ipString().c_str(), ipString().c_str(), HOSTNAME, sensorName,
                 (int)streaming, streaming ? fps : 0.0f);
+  if (wifiProblem.length()) Serial.println("  Wi-Fi: " + wifiProblem);
   delay(5000);
 }
