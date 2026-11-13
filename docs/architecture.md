@@ -28,10 +28,12 @@ The laptop and the two ESP32s are the only computers in the design; there is **n
 | Two ESP32 boards (camera + control), one DC motor, one rudder servo | Confirmed hardware choice |
 | Laptop dashboard, simulated mission, simulator | Implemented in `dashboard/` (simulator tested, see dashboard/README.md) |
 | Control ESP32 firmware: telemetry, heartbeat, e-stop, leak, comms-loss stop | Written, not yet run on hardware |
-| Camera stream to the dashboard | Planned, not implemented |
+| Camera board firmware (XIAO ESP32S3 Sense) + `vision/` object-detection viewer | Written (Armin); hardware status in vision/README.md. Not yet shown inside the dashboard |
 | GPS reading and coordinates on the dashboard | Planned, not implemented |
 | Rudder servo command | Planned, not implemented (current code still has two motor outputs `l`/`r`, see "Protocol change needed") |
 | P / PID rudder control | Optional, not implemented |
+
+**Camera (separate board):** a XIAO ESP32S3 Sense streams video over Wi-Fi; `vision/viewer.py` runs object detection on it and serves the results to the dashboard. Endpoints and JSON: [vision/INTEGRATION.md](../vision/INTEGRATION.md). The camera has no part in the safety chain.
 
 **Design rules:**
 - The control ESP32 never needs the laptop to be safe. If the laptop crashes, freezes or the link is cut, the ESP32 stops the propulsion motor by itself. The laptop is never the only safety enforcement point.
