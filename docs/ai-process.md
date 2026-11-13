@@ -20,12 +20,12 @@ Copy the template, fill it in right after the AI use. Be honest about errors - m
 - Linked requirement / issue / commit:
 ```
 
-## Design iteration procedure (use for the R4 showpiece)
+## Design iteration procedure (use for the R11 showpiece)
 Requirement -> AI-generated design -> human review -> physical or simulated test -> revised design -> repeated test.
 
 1. **Requirement:** write the requirement ID and target.
 2. **AI-generated design:** prompt the AI with the requirement + parameter table; save the prompt and output (commit as `v1`).
-3. **Human review:** Person 1 + Person 4 check dimensions, printability, fit; list every issue found (also those the AI missed).
+3. **Human review:** the owner (P1 for CAD, P2 for firmware, P3 for dashboard) plus Person 4 review it; list every issue found (also those the AI missed).
 4. **Test:** physical or simulated; record in tests/test-results.md.
 5. **Revised design:** feed the *measured* result back to the AI, ask for a change, review it, commit as `v2`. State exactly which parameter changed and why.
 6. **Repeat test:** same procedure, same conditions. Record before/after numbers.
@@ -35,6 +35,8 @@ Requirement -> AI-generated design -> human review -> physical or simulated test
 | Area | What AI did | What humans verified | Time saved (estimated - say "estimated") |
 |---|---|---|---|
 | CAD | | | |
+| Firmware (ESP32) | | | |
+| Dashboard (Pi) | | | |
 | Testing | | | |
 | Docs / pitch | | | |
 
@@ -50,4 +52,4 @@ Requirement -> AI-generated design -> human review -> physical or simulated test
 - Human verification: Opened in slicer, checked dimensions and print time, checked wall >= 2x nozzle width.
 - Errors / limitations: Two parts did not fit - clearance was zero. The AI had not been told about print tolerance.
 - Changes made afterwards: Added a `clearance` parameter = 0.3 mm; re-prompted with the printer tolerance.
-- Linked: R3, R4
+- Linked: R2, R3, R11

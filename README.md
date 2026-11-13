@@ -1,70 +1,77 @@
-# Hackathon Prototype (concept to be decided)
+# SeaGuardian - supervised harbour safety inspector (hackathon demonstrator)
 
 > **Campor Hackathon - Saab x Marine Technology Center (MTC) - Challenge: Prompt-to-Product - 13-15 Nov 2026**
 
-**Status:** our earlier concept was dropped. We are waiting for the official brief and requirements (presented Friday). The new concept will be chosen from that brief, with one goal: **a real, printable 2D/3D prototype finished within hours**, plus honest test evidence and a visible AI-assisted engineering process.
+**Honest disclaimer:** SeaGuardian is a weekend proof of concept: a CAD design plus a **dry bench** electronics and software demonstrator. It has not been on water. Navigation is a **simulated supervised inspection mission**, not real autonomy. All numbers are provisional targets until [`tests/test-results.md`](tests/test-results.md) says otherwise.
 
-**Honest disclaimer:** this is a weekend proof of concept. All numbers are *provisional targets* until a row in [`tests/test-results.md`](tests/test-results.md) says otherwise.
+## The problem (hypothesis - validate with a mentor today)
+After storms, accidents or suspected damage, harbour operators may need to inspect infrastructure or local water conditions **before deciding whether to send personnel** into an area.
 
-## Concept (fill in after the brief)
-- **Name:**
-- **Problem it addresses (from the brief):**
-- **Target user:**
-- **What we build physically:**
-- **What AI does in our process:**
+## The solution
+A small, supervised unmanned surface vehicle (two-hull catamaran) that runs an initial inspection mission, collects sensor data and reports problems to an operator. Its point of difference is not "a small autonomous boat" (Saab already builds those), but:
+1. **Interchangeable sensor bay** - payloads swap per mission.
+2. **Split control:** high-level mission logic on a Raspberry Pi, low-level **safety control on an ESP32** that stops the motors on its own if anything goes wrong.
+3. **Transparent AI-assisted engineering** - every design step, mistake and fix is logged.
 
-## How we choose the concept (Friday, right after the brief)
-Score each idea 1-5 on: fits the brief and judging criteria / printable in < 3 h / demo works on a table / one measurable test we can run today / AI process is easy to show. Pick the highest total and record it in [`docs/decisions.md`](docs/decisions.md).
+Positioning: *a modular, low-cost experimental platform for developing and testing safe maritime inspection capabilities.* (Do not claim lower cost than existing systems without a defensible comparison.)
 
-## Features
-**Essential (must work for the demo)** - max 3-4 items
--
+**Target user:** harbour maintenance and safety personnel; possible future use by naval support teams.
 
-**Optional - only after ALL essentials are done**
--
+## The five things we build this weekend
+| # | Feature | Owner | Evidence |
+|---|---|---|---|
+| 1 | Complete CAD assembly: catamaran, sealed electronics bay, propulsion mounts, interchangeable sensor bay | P1 | Editable CAD, exploded view, component-fit check |
+| 2 | Raspberry Pi <-> ESP32 communication | P2 + P3 | Live messages between the boards (or clearly labelled simulation) |
+| 3 | Sensor monitoring: IMU (orientation), pressure sensor (atmospheric pressure), leak sensor | P2 | Real readings, correctly labelled |
+| 4 | Safety-first motor control: emergency stop, comms-loss timeout, operator override | P2 | Injected fault -> motor output commanded to zero, measured |
+| 5 | Inspection mission dashboard: start mission, live sensor data, event log, faults | P3 | Repeatable live demo |
+
+**Not this weekend:** obstacle avoidance, GPS waypoint navigation, real autonomous sailing, water trials.
 
 ## Team
-| Person | Role | Group | Owns |
-|---|---|---|---|
-| 1 | Technical lead / CAD | A - Physical | CAD, STL, printed parts, technical merges |
-| 2 | Electronics lead | B - Electronics & SW | Electronics (if the concept needs any), power, electrical safety |
-| 3 | Product lead / integration | B - Electronics & SW | Priorities, integration, optional software, mentors, AI log (with 5) |
-| 4 | Prototype & verification | A - Physical | Assembly, tests, video, verification checklist |
-| 5 | Research, docs & pitch | Cross-team | Pitch, slides, research, AI log (with 3), decisions, judge Q&A |
+| Person | Role | Main jury criteria |
+|---|---|---|
+| 1 | CAD developer / technical lead | Feasibility, technical quality |
+| 2 | Electrical engineer: Pi/ESP32 architecture, sensors, motor safety | Technical quality, feasibility |
+| 3 | Product lead: mission definition, dashboard, integration, mentor feedback | Problem, user value, partner relevance |
+| 4 | Verification: test matrix, repeated tests, evidence | Technical quality, feasibility |
+| 5 | User research, differentiation, AI log, presentation | Problem, user value, innovation, presentation |
 
-GitHub usernames: fill in at the top of [`docs/workflow.md`](docs/workflow.md).
+**What to do first:** [`docs/start-here.md`](docs/start-here.md) - one section per person.
 
 ## Repository map
 ```
-cad/            Model source (models/) and STL/STEP exports (exports/)   - Person 1
-electronics/    Firmware and wiring, only if the concept needs it          - Person 2
-dashboard/      OPTIONAL software                                           - Person 3
-tests/          Test plan and test results (the evidence)                   - Person 4
-docs/           Requirements, architecture, components, AI log, decisions, risks, research, workflow
-presentation/   Pitch outline, demo script, judge Q&A prep                  - Person 5
+cad/                    CAD source (models/) and exports (exports/)                     - P1
+electronics/firmware/   ESP32 firmware (sensors + safety + motor output)                 - P2
+electronics/wiring/     Wiring diagram, pin table, photos                                - P2
+dashboard/              Raspberry Pi mission software + operator dashboard              - P3
+tests/                  Test plan and results (the evidence)                             - P4
+docs/                   Start here, requirements, architecture + protocol, components,
+                        AI log, decisions, risks, research, workflow                     - P3/P5
+presentation/           Pitch outline, demo script, judge Q&A                            - P5
 ```
-Each workstream lives in its own folder, so merge conflicts should be rare.
 
-## How to run / demonstrate
-Nothing yet. As each part works, write the exact steps in its folder README.
+## Demo sequence (60-90 s)
+1. Operator starts an inspection mission on the dashboard (simulated vessel departs).
+2. ESP32 streams IMU and pressure readings to the Pi; they appear live.
+3. Abnormal condition: we tilt the real IMU (or inject a labelled leak signal) -> warning to the operator.
+4. Safety response: we cut the Pi <-> ESP32 link -> after the timeout the ESP32 commands motor output to zero.
+5. CAD: show where electronics, propulsion and the swappable sensor bay sit.
 
-## Current status
-Update at every checkpoint.
+A dry bench motor stop demonstrates our **control logic**, not complete real-world vessel safety.
 
+## Current status (update at every checkpoint)
 | Area | Status | Notes |
 |---|---|---|
-| Official brief reviewed | Not started | Update [requirements](docs/requirements.md) |
-| Concept chosen | Not started | |
-| CAD v1 | Not started | |
-| First print | Not started | |
+| Problem validated with a mentor | Not started | Question in [research.md](docs/research.md) |
+| Requirements v1 | Drafted | [requirements.md](docs/requirements.md) |
+| CAD assembly v1 | Not started | |
+| Pi <-> ESP32 link | Not started | Protocol in [architecture.md](docs/architecture.md) |
+| Sensors | Not started | |
+| Safety stop | Not started | |
+| Dashboard | Not started | |
 | Tests | Not started | |
-| Pitch + demo script | Not started | |
-| Backup video | Not started | |
-
-## Weekend milestones
-- **Fri 13 Nov:** brief read, concept chosen, requirements v1, CAD v1, **first print started the same day**, test procedure written.
-- **Sat 14 Nov:** test v1, AI-assisted improvement -> v2 print -> retest, backup video, **prototype freeze**.
-- **Sun 15 Nov:** no new features. Rehearse, present, answer questions.
+| Pitch + backup video | Not started | |
 
 ## Key documents
-[Requirements](docs/requirements.md) - [Test plan](tests/test-plan.md) - [Test results](tests/test-results.md) - [AI engineering log](docs/ai-process.md) - [Decisions](docs/decisions.md) - [Risks](docs/risks.md) - [Workflow & how-to](docs/workflow.md) - [Pitch outline](presentation/pitch-outline.md)
+[Start here](docs/start-here.md) - [Requirements](docs/requirements.md) - [Architecture & protocol](docs/architecture.md) - [Test plan](tests/test-plan.md) - [Test results](tests/test-results.md) - [AI engineering log](docs/ai-process.md) - [Decisions](docs/decisions.md) - [Risks](docs/risks.md) - [Workflow](docs/workflow.md) - [Pitch](presentation/pitch-outline.md)

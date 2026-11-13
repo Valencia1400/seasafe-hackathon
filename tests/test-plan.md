@@ -1,28 +1,32 @@
-# Test Plan - Owner: Person 4 (with Person 1 and Person 5)
+# Test Plan - Owner: Person 4 (with Person 2 and Person 3)
 
-Targets are **provisional** (see docs/requirements.md). Record outcomes in `tests/test-results.md`. A test that was not run is **Not tested**, never "Pass".
+Each test checks the requirement with the same number in [docs/requirements.md](../docs/requirements.md). Record every trial in `tests/test-results.md`. A test that was not run is **Not tested**, never "Pass".
 
 ## Safety rules
-1. Follow the venue's rules for printers, tools and hot parts.
-2. If the concept has electronics: powered tests only with Person 2 present; no exposed electronics near water or heat.
+- Dry bench only. No powered electronics near water. No propellers on bench motors.
+- Person 2 is present for every powered test.
 
-## General method
-- Same conditions for every comparison between versions.
-- Record **every** trial, including failures. Film at least one trial per test (phone, stopwatch or ruler visible).
-- One person handles, one measures, one records.
-- Change **one thing at a time** between design versions.
+## How to time things
+Use the dashboard log file: it timestamps each message and the ESP32 `ms` field shows when the output changed. Film the screen and the bench together as backup evidence.
 
-## Test procedures (fill in after the concept is chosen)
-| ID | Req | Procedure | Expected result |
+## Tests
+| ID | Procedure | Pass criterion | Repeats |
 |---|---|---|---|
-| T-R1 | R1 | | |
-| T-R2 | R2 | | |
-| T-R3 | R3 | Open STL in slicer, check bed fit, errors, thin-wall warnings, print time. Screenshot. | Slices without blocking errors, < 3 h |
-| T-R4 | R4 | Run the failing test on v1, record data, change design (log in docs/ai-process.md), print v2, re-run the same test. | Measured difference documented |
-| T-R5 | R5 | End of Saturday: every requirement row in test-results.md has a status and evidence link. | No blank rows |
+| T-R1 | Ask a Saab/MTC mentor the problem question (docs/start-here.md); write the answer word for word, with name and time | Answer recorded | 1 |
+| T-R2 | Open the CAD model, change one parameter, regenerate; export the exploded view | Model regenerates; all required parts present | 1 |
+| T-R3 | Place every component from components.md in CAD at real size; measure the smallest gap | All gaps >= 3 mm or exceptions listed | 1 |
+| T-R4 | Run the link for 5 minutes; count telemetry `seq` gaps in the log | >= 5 Hz and >= 99% received | 3 |
+| T-R5 | With the real sensors: check roll/pitch against a phone level app at 0 and about 30 deg; check the pressure value is plausible for atmospheric pressure | Values shown, labelled, units correct, update >= 1/s | 5 |
+| T-R6 | Tilt the IMU past 30 deg; time from tilt to TILT warning (video) | <= 1 s | 5 |
+| T-R7 | Trigger the leak input; time to LEAK fault and motor output 0 | <= 1 s | 5 |
+| T-R8 | Motors running on the bench; press E-STOP; compare log time of the press with the ESP32 `ms` of output 0 | <= 200 ms | 5 |
+| T-R9 | Motors running; press "Cut link" (or pull the USB cable); time until output 0; then check motors stay off until Reset | Stop within 1.2 s; no restart without Reset | 5 |
+| T-R10 | Run the full demo sequence (README) from a fresh start | Completes without a restart | 5 |
+| T-R11 | Pick one AI-generated design or code part that failed review or a test; fix; re-run the same test | Before/after documented | 1 |
+| T-R12 | (If printed) remove and replace the sensor-bay module, stopwatch | < 60 s | 5 |
 
 ## Verification checklist (Person 4)
-- [ ] Measuring tools ready (caliper/ruler, scale, stopwatch/phone, tape)
-- [ ] Each test run at least once; failures recorded
-- [ ] Video/photo evidence linked in test-results.md
-- [ ] Limitations written down (what we did NOT test)
+- [ ] Every test above has a row in test-results.md
+- [ ] Failures are kept, with the corrective action
+- [ ] Video evidence linked for T-R6, T-R8, T-R9, T-R10
+- [ ] Limitations listed (what we did not test)

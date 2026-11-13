@@ -1,29 +1,36 @@
 # CAD - Owner: Person 1 (support: Person 4)
 
-## Tooling
-Prefer a **text-based parametric tool** (e.g. OpenSCAD) so that AI can generate and edit the model as code, every change is a readable git diff, and "change one parameter, re-export" can be shown live. Fusion/FreeCAD/Onshape is fine too: keep the parameter table and export STEP + STL.
+Requirements R2, R3 (and R12 if a part is printed). Layout and interfaces: [docs/architecture.md](../docs/architecture.md).
 
-## Fast-print rules (we need a part in hours, not days)
-- Target print time **< 3 h** for v1; check the slicer estimate before printing.
-- Flat bottom, few overhangs, no supports if possible; split big parts.
-- Wall thickness >= 2x nozzle width (ask the printer owner).
-- Print a small **test piece** first (a fit/tolerance test) if parts must fit together.
+## The assembly
+- Two hulls joined by a deck (catamaran: stable platform, space for a central bay).
+- Sealed electronics bay: Raspberry Pi, ESP32, battery, motor drivers.
+- Two propulsion mounts (one per hull).
+- Swappable sensor bay at the bow with a standard interface.
+
+## Tooling
+Parametric (OpenSCAD lets AI edit the model as code and every change is a git diff; Fusion/FreeCAD/Onshape also fine). Keep the parameter table below current.
 
 ## Files
-- `models/` - source model files.
-- `exports/` - STL and STEP. Version the names: `part_v1.stl`, `part_v2.stl`. Never overwrite a version that was physically tested.
+- `models/` - source files.
+- `exports/` - STEP/STL, exploded-view image, geometry-check screenshots. Versioned names (`seaguardian_v1`, `_v2`).
 
-## Parameter table - fill in
+## Parameter table
 | Parameter | Meaning | v1 | v2 | Why changed |
 |---|---|---|---|---|
-| | | | | |
+| hull_length | | | | |
+| hull_spacing | | | | |
+| bay_inner_lwh | Electronics bay inner size (from P2's component list) | | | |
+| sensor_bay_lwh | Sensor bay interface size | | | |
+| clearance | Component clearance (target >= 3 mm, R3) | | | |
 
-## Printability checklist (Person 4 can verify)
-- [ ] Fits the print bed; print time estimate noted
-- [ ] Overhangs within printer limits or supports planned
-- [ ] Slicer preview inspected; screenshot saved in `cad/exports/`
+## Geometry check (Person 4 can verify)
+- [ ] Every component from docs/components.md placed as a simple box at its real size
+- [ ] Clearance >= 3 mm everywhere, or the exception noted
+- [ ] Cable route from sensor bay to electronics bay shown
+- [ ] Exploded view exported to `exports/`
 
 ## Iteration log
-| Version | Date/time | Change | Reason (requirement or test finding) | AI used? | Tested? |
+| Version | Date/time | Change | Reason (test or review finding) | AI used? | Checked by |
 |---|---|---|---|---|---|
 | v1 | | | | | |

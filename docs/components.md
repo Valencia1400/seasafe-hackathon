@@ -1,30 +1,31 @@
-# Components & Equipment
+# Components - Owner: Person 2 (mechanical: Person 1)
 
-Fill in Friday right after the brief. Mark **Have / Need / Ask organisers**.
+Fill in what we **actually have**. Dimensions go to Person 1 for the CAD. Costs: only with a source (shop link); otherwise leave blank - no guessed prices in the pitch.
 
-## Printing (Owner: Person 1)
+## Electronics
+| Item | Model | Have / Need | Size L x W x H (mm) | Mass (g) | Est. cost + source |
+|---|---|---|---|---|---|
+| Raspberry Pi | | | | | |
+| ESP32 board | | | | | |
+| IMU | | | | | |
+| Pressure sensor (atmospheric) | | | | | |
+| Leak sensor (or test input) | | | | | |
+| Motor driver | | | | | |
+| Motors (2, bench only) | | | | | |
+| Battery / power | | | | | |
+| Cables, connectors | | | | | |
+
+## Mechanical
 | Item | Spec | Have / Need | Notes |
 |---|---|---|---|
-| 3D printer (type, bed size, nozzle) | | | queue time? |
-| Filament (PLA / PETG / other) | | | |
-| Slicer software | | | |
-| 2D option: laser cutter / paper / cardboard | | | if 3D is too slow |
+| 3D printer (only for the sensor-bay part, optional) | | | |
+| Fasteners for the sensor bay | | | |
 
-## Parts and materials (Owners: Person 1, Person 4)
-| Item | Spec | Have / Need | Notes |
-|---|---|---|---|
-| | | | |
+## Tools and software
+CAD tool, Arduino IDE / PlatformIO, Python on the Pi, AI assistants (log each use in ai-process.md).
 
-## Electronics, if needed (Owner: Person 2)
-| Item | Qty | Spec | Have / Need | Notes |
-|---|---|---|---|---|
-| | | | | |
-
-## Test equipment (Owner: Person 4)
-| Item | Have / Need |
-|---|---|
-| Caliper / ruler, scale (grams) | |
-| Phone on a stand for video, stopwatch | |
-
-## Software / AI tools
-CAD tool, slicer, AI assistants used (log each use in docs/ai-process.md).
+## Cost summary for the pitch (only sourced prices)
+| Group | Sum | Sources |
+|---|---|---|
+| Electronics | | |
+| Mechanical (estimate for a full hull) | | |

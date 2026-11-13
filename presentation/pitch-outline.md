@@ -1,21 +1,24 @@
 # Pitch Outline - Owner: Person 5 (with Person 3)
 
-Fit to the official time limit (write it here once known: ____ minutes). One idea per slide; the physical demo is the centre. **Only use numbers from tests/test-results.md or sourced facts in docs/research.md.**
+Time limit: ____ minutes (ask). Order follows the rubric weights. **Only numbers from tests/test-results.md or sourced facts.**
 
-| # | Section | Content | Evidence to show | Time (scale to limit) | Speaker |
-|---|---|---|---|---|---|
-| 1 | The problem (from the brief) | One concrete scenario | Sourced fact (research.md) | 10% | |
-| 2 | Why existing solutions leave room | Facts only | Sourced comparison | 10% | |
-| 3 | Our concept and target user | | Concept image / CAD render | 10% | |
-| 4 | Physical prototype demonstration | Live demo | The real part + backup video | 25% | |
-| 5 | How AI accelerated the design | Requirement -> AI design -> review -> test -> v2. One prompt, one AI error we caught | ai-process.md chain | 20% | |
-| 6 | What we tested and what it shows | Pass / fail / not tested; v1 vs v2 | test-results.md | 15% | |
-| 7 | Limitations and next steps | What we did not test | risks.md | 5% | |
-| 8 | Why it matters | One-sentence takeaway | | 5% | |
+| # | Section | Time share | Content | Proves |
+|---|---|---|---|---|
+| 1 | Real problem and user | 20% | The harbour operator's decision after a storm or incident; the mentor's own words (R1) | Problem understanding |
+| 2 | User value and solution | 20% | What information the operator gets before sending people in; SeaGuardian's role | User value |
+| 3 | Live demo + CAD | 30% | Demo sequence (demo-script.md); CAD with electronics, propulsion and swappable sensor bay | Technical quality, feasibility |
+| 4 | AI engineering journey | 15% | Prompt -> design -> review -> test -> fix; one AI mistake we caught; how each team member contributed | Innovation, partner relevance, "the path" |
+| 5 | Limitations and future work | 15% | What we did not test; what more time, money or a test environment would allow | Feasibility, credibility |
 
-## One-sentence pitch (write after the concept is chosen)
+## Positioning (one sentence)
+"SeaGuardian is a modular, low-cost experimental platform for developing and testing safe maritime inspection capabilities - with mission logic and safety control kept apart." (Do not claim lower cost than existing systems without a comparison.)
+
+## Future development (required by the brief - keep adding during the weekend)
+- **Next week:** real sensors on a controlled dry hardware rig; repeat the safety tests.
+- **With prototyping facilities:** build the hull; test flotation, component fit, sealing and power consumption.
+- **With an authorised marine test environment (e.g. MTC's test sites):** supervised water trials, then positioning and obstacle-avoidance research - under the applicable maritime rules.
+- Added during the weekend:
 
 ## Rules
-- No invented statistics, cost savings, military requirements or test outcomes.
-- Say "provisional target" and "proof of concept".
+- Say "simulated supervised mission" and "bench test". No invented statistics or cost savings.
 - Every team member speaks or runs part of the demo.

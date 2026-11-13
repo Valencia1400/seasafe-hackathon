@@ -1,42 +1,56 @@
 # Requirements
 
-> **Status: brief received Friday (our notes from the opening talk).** Section 1 is our paraphrase, not official text - correct it against any written brief. Section 2 is written after the concept is chosen (see [concepts.md](concepts.md)).
+> Section 1 is our notes from the opening talk, not official text - correct it against any written brief. Section 2 is our own provisional requirements for SeaGuardian; targets are engineering targets, not verified claims.
 
-## 1. Official brief and judging criteria (from the opening talk, Fri 13 Nov - Owner: Person 3)
+## 1. Brief and judging criteria (Fri 13 Nov - Owner: Person 3)
 Presenters: Saab Naval and Marine Technology Center (MTC) - Dr Per Skarin, Jakob Nielsen, Björn Lindkvist.
 
 | Item | What they said (our notes) | Impact on our plan |
 |---|---|---|
-| Challenge statement | Prompt-to-Product: use modern AI and show how far you can get. **Set your own requirements** and take a concept as far as possible. Any product: on the surface, below the surface, or "in a box". | We choose the problem ourselves, but must justify the choice |
-| What they evaluate | (1) **The path, not only the result:** the steps taken, how we validated, the problems and bumps on the road and how we solved them, which tools. (2) **Why we chose** the concept (rationale). (3) Examples of **sensors or technologies** used. (4) How the team **uses its different competencies**. | Log decisions, problems and AI use continuously; every role must be visible in the pitch |
-| Pitch must end with | What we could do with **more time, research, money, physical research or a test environment** | Keep a running "next steps / needs" list from the start |
-| Physical prototype | "Do not expect us to produce" - but showing one "would be great" | A working printed prototype is a strong differentiator; the process story is required regardless |
-| Relevant MTC core areas | Signature management; naval architecture; energy and propulsion; structures and materials; safety and rescue; sensor and weapons integration; automation and autonomy. Lately also **combat systems** (integrating all sensors on a vessel). | Pick a concept that clearly lands in one or two areas |
-| Context they mentioned | MTC: triple helix with BTH, SMEs and Karlskrona; test sites (e.g. a fishery site) used by the Royal Swedish Navy, Sweden and NATO. A Copenhagen Prompt-to-Product team won with a 3D-printed moving mechanism that **swapped a drone's battery**, shown live on stage. | A moving, printed mechanism demoed live is proven to land well |
-| Collaboration | They invest the weekend because they may **continue the work with us** afterwards | Pitch a credible roadmap, not just a demo |
-| Presentation time limit | Not noted - ask | |
-| Deliverable / submission rules | Jury Room (Campor) - confirm format | |
-| Available equipment (printers, materials) | Not noted - ask | Decides print size and materials |
-| Mentor contacts | The three presenters above | Ask them to sanity-check our concept today |
-| Deadlines (freeze, submission) | Not noted - ask | |
+| Challenge | Prompt-to-Product: use modern AI and show how far you can get. Set your own requirements and take a concept as far as possible. Surface, below surface or "in a box". | We justify our own problem and requirements |
+| What they evaluate | The path, not only the result: steps, validation, problems and how we solved them, tools. Why we chose the concept. Sensors/technologies used. How the team uses its competencies. | Log decisions, problems and AI use continuously |
+| Pitch must end with | What we could do with more time, research, money or a test environment | Running list in presentation/pitch-outline.md |
+| Physical prototype | Not expected, but welcome | CAD + bench demo is the core; a printed part is a bonus |
+| MTC core areas | Signature management; naval architecture; energy and propulsion; structures and materials; safety and rescue; sensor and weapons integration; automation and autonomy; lately combat systems (integrating all sensors on a vessel) | SeaGuardian lands in sensor integration, autonomy and safety |
+| Collaboration | They may continue the work with teams afterwards | Pitch a credible next phase |
+| Presentation time limit | **Ask** | |
+| Submission format and deadline | Jury Room (Campor) - **confirm** | |
+| Equipment available | **Ask** (printers, boards) | |
 
-**Brief-change procedure:** (1) paste the official text above, (2) Person 3 and Person 5 mark what changes, (3) record it in `docs/decisions.md`, (4) update the table below and the issues, (5) announce at the next checkpoint.
+### Jury rubric (as given to us)
+| Criterion | Weight | What we must show |
+|---|---|---|
+| Problem understanding | 20% | Specific operator, real inspection problem, evidence from a mentor or credible source |
+| User value | 20% | A concrete inspection scenario and the information the operator actually gets |
+| Feasibility | 15% | CAD, component architecture, risks, costs, realistic next step |
+| Technical quality | 15% | Working Pi/ESP32 link, real or simulated sensor data, tested safety response |
+| Innovation | 10% | Modular inspection payload plus fault-aware supervised autonomy |
+| Presentation | 10% | Clear 60-90 s demo, tested results, honest limitations |
+| Partner relevance | 10% | Connection to Saab's sensor integration, autonomy and safety |
 
-## 2. Product requirements (write after the concept is chosen)
-Priority: **M** = must (demo fails without it), **S** = should, **C** = could (stretch). Every M requirement needs a test we can run **today or Saturday**.
+## 2. Product requirements (provisional v1)
+Priority: **M** must, **S** should, **C** could. Every target is checked by the test with the same number in [tests/test-plan.md](../tests/test-plan.md).
 
-| ID | Requirement | Measurable target | Pri | Test | Status |
+| ID | Requirement | Measurable target | Pri | Owner | Status |
 |---|---|---|---|---|---|
-| R1 | | | M | T-R1 | Not tested |
-| R2 | | | M | T-R2 | Not tested |
-| R3 | Printable | STL loads in a slicer with no blocking errors; fits the bed; print time < 3 h | M | T-R3 | Not tested |
-| R4 | One genuine design improvement | v1 test result -> change -> v2 retest, with a measured difference | S | T-R4 | Not tested |
-| R5 | Evidence is honest | Every requirement marked pass / fail / not tested with evidence | M | T-R5 | Not tested |
+| R1 | Problem validated | A Saab/MTC mentor's answer to our problem question recorded word for word | M | P3 | Not tested |
+| R2 | CAD assembly | Editable parametric model: 2 hulls, sealed electronics bay, 2 propulsion mounts, swappable sensor bay; exploded view exported | M | P1 | Not tested |
+| R3 | Components fit | Every listed component fits its space in CAD with >= 3 mm clearance (provisional) | M | P1/P2 | Not tested |
+| R4 | Pi <-> ESP32 link | Telemetry at >= 5 Hz; >= 99% of messages received over a 5-minute run (sequence-number check) | M | P2/P3 | Not tested |
+| R5 | Sensor readings | IMU roll/pitch and atmospheric pressure shown on the dashboard, correctly labelled with units, updating at least once per second | M | P2/P3 | Not tested |
+| R6 | Tilt warning | Tilting the IMU beyond 30 deg raises a TILT warning on the dashboard within 1 s, 5 of 5 trials | M | P2/P3 | Not tested |
+| R7 | Leak fault | Leak input (sensor or labelled test input) raises a LEAK fault and stops motors within 1 s, 5 of 5 | S | P2 | Not tested |
+| R8 | Emergency stop | Operator e-stop -> ESP32 motor output 0 within 200 ms, 5 of 5 | M | P2 | Not tested |
+| R9 | Comms-loss stop | No heartbeat for 1.0 s -> ESP32 motor output 0 within a further 200 ms, 5 of 5; motors stay off until the operator resets | M | P2 | Not tested |
+| R10 | Mission dashboard | Start a simulated inspection mission, show live readings, event log and faults; full demo sequence runs 5 of 5 without a restart | M | P3 | Not tested |
+| R11 | Design iteration | One AI-assisted design or code mistake found by test or review, corrected, and retested - documented | M | P5/P4 | Not tested |
+| R12 | Swappable sensor bay | (If printed) payload module removed and replaced in < 60 s without tools | C | P1/P4 | Not tested |
 
 ## 3. Explicit non-goals
-- Not certified; no claim of compliance with any standard.
-- No invented statistics, costs, military requirements or test outcomes.
+- No real autonomy, obstacle avoidance, GPS navigation or water trials this weekend; the mission is **simulated and supervised**.
+- Not certified; no claim of compliance with maritime or naval standards. Autonomous vessel trials must still follow applicable maritime rules.
+- No invented statistics, costs, military requirements or test outcomes. No cost-saving claims without a comparison.
 
-## 4. Assumptions to confirm
-- Printer type, materials, bed size and queue time at the venue.
-- What tools and materials are available for assembly and testing.
+## 4. Open questions
+- Presentation time limit, submission format and freeze/deadline times.
+- Which boards and sensors are available (Pi model, ESP32 board, IMU, pressure sensor, leak sensor).

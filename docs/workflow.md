@@ -15,20 +15,8 @@ Person 3 updates the status table in README.md. **Nobody stays blocked > 30 minu
 
 Rule of the weekend: **no stretch work until that day's essentials are Done.**
 
-## Friday / Saturday plan (adjust to the official schedule)
-**Friday**
-1. Brief presentation: everyone listens; Person 3 and 5 write the brief into docs/requirements.md section 1.
-2. Within 1 hour: score 2-3 concepts (see README), pick one, record it in docs/decisions.md. P1 confirms printer and queue time.
-3. P1 + AI: CAD v1, slicer check, **first print started the same afternoon** (< 3 h print). P4 writes the test procedure while it prints. P5 starts research and the pitch outline.
-4. Evening checkpoint: requirements v1, CAD v1 printed or printing, test procedure ready.
-
-**Saturday**
-1. Morning: test v1, record numbers.
-2. Midday: AI-assisted change -> v2 print -> retest (R4).
-3. Afternoon: backup video, test-results.md filled, pitch + demo script.
-4. Evening: **prototype freeze**. After freeze: only docs, rehearsal, backups.
-
-**Sunday:** rehearse twice, readiness checklist (presentation/demo-script.md), present, Q&A. No new features.
+## Friday / Saturday plan
+See [start-here.md](start-here.md): first steps per person, and the Friday and Saturday Definition of Done. Sunday: rehearse twice, readiness checklist ([demo-script.md](../presentation/demo-script.md)), present, Q&A. No new features.
 
 ## Git workflow (simple)
 - `main` = stable. Only technical members merge; beginners edit docs in the browser.
@@ -49,7 +37,7 @@ cd seasafe-hackathon
 git checkout -b feature/cad        # first time (or: git checkout feature/cad)
 # ...edit files in your own folder...
 git add cad/
-git commit -m "CAD: add first part"
+git commit -m "CAD: add hull v1"
 git push -u origin feature/cad
 ```
 Open a pull request on GitHub, base = `main`. Keep PRs small. Person 1 reviews and merges. Then everyone updates:
