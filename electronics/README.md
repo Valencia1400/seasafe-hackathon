@@ -23,7 +23,7 @@ Protocol and safety rules: [docs/architecture.md](../docs/architecture.md). Requ
 LEDs (with resistors) or the motor driver with the DC motor but **no propeller**. Show the output value in telemetry (`l`, `r` today) so stops can be timed from the log.
 
 ## Hardware update (D-007) - not yet in the firmware
-Confirmed: **two ESP32s** - ESP32 #1 camera (video to the laptop over Wi-Fi), ESP32 #2 control (this firmware). Propulsion is **one DC motor** through a motor driver, steering is **one servo on a rear rudder**. No Raspberry Pi.
+Confirmed: **two ESP32s** - ESP32 #1 camera (video to the laptop over Wi-Fi), ESP32 #2 control (this firmware). Propulsion is **one DC motor** through a motor driver, steering is **one servo on a rear rudder**.
 - The firmware above still drives two outputs `l`/`r`. Changing it to propulsion + rudder servo needs the protocol change in [docs/architecture.md](../docs/architecture.md) ("Protocol change needed") - agree it with Person 3 first.
 - To add: GPS reading (position only), rudder servo output (centred on a safety stop), yaw rate from the IMU gyro.
 - Optional after that: P controller on yaw rate -> rudder. PID is a stretch goal.

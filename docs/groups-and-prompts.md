@@ -1,6 +1,6 @@
 # SeaGuardian - Groups, Interfaces and AI Prompts
 
-**Concept:** SeaGuardian - a supervised harbour-safety inspection demonstrator (small catamaran USV). A laptop runs the mission and dashboard (no Raspberry Pi); ESP32 #1 streams camera video; ESP32 #2 reads sensors (IMU, GPS, pressure, leak), drives one DC propulsion motor and a rear rudder servo, and owns low-level safety. Interchangeable sensor bay. **Navigation is a simulated supervised inspection mission** - no real autonomy, GPS or obstacle avoidance this weekend.
+**Concept:** SeaGuardian - a supervised harbour-safety inspection demonstrator (small catamaran USV). A laptop runs the mission and dashboard; ESP32 #1 streams camera video; ESP32 #2 reads sensors (IMU, GPS, pressure, leak), drives one DC propulsion motor and a rear rudder servo, and owns low-level safety. Interchangeable sensor bay. **Navigation is a simulated supervised inspection mission** - no real autonomy, GPS or obstacle avoidance this weekend.
 
 **Rules for everyone:** dry bench tests only (no props on motors, nothing in water). Anything simulated is labelled "SIMULATED" on screen and in the pitch. No invented numbers. Log AI use in your own `docs/ai-log/<name>.md`.
 
@@ -54,7 +54,7 @@ Summary: USB serial 115200, JSON lines; laptop sends heartbeat every 200 ms; ESP
 Context: We are a 5-person team at a weekend hackathon (Saab x Marine Technology Center, "Prompt-to-Product").
 The jury judges the path: how we used AI, how we validated, problems we hit and how we fixed them.
 Our concept: SeaGuardian, a supervised harbour-safety inspection demonstrator - a small catamaran
-unmanned surface vehicle. A laptop runs the mission logic and an operator dashboard (no Raspberry Pi). ESP32 #1 streams camera video.
+unmanned surface vehicle. A laptop runs the mission logic and an operator dashboard. ESP32 #1 streams camera video.
 ESP32 #2 reads sensors (IMU, GPS, pressure, leak), drives one DC propulsion motor and a rear rudder servo, and owns low-level safety (heartbeat timeout, emergency stop,
 leak stop). It has an interchangeable sensor bay. Navigation is a SIMULATED supervised inspection mission;
 we are not building real autonomy, GPS navigation or obstacle avoidance.

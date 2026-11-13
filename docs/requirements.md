@@ -23,7 +23,7 @@ Presenters: Saab Naval and Marine Technology Center (MTC) - Dr Per Skarin, Jakob
 | Problem understanding | 20% | Specific operator, real inspection problem, evidence from a mentor or credible source |
 | User value | 20% | A concrete inspection scenario and the information the operator actually gets |
 | Feasibility | 15% | CAD, component architecture, risks, costs, realistic next step |
-| Technical quality | 15% | Working Pi/ESP32 link, real or simulated sensor data, tested safety response |
+| Technical quality | 15% | Working laptop/ESP32 link, real or simulated sensor data, tested safety response |
 | Innovation | 10% | Modular inspection payload plus fault-aware supervised autonomy |
 | Presentation | 10% | Clear 60-90 s demo, tested results, honest limitations |
 | Partner relevance | 10% | Connection to Saab's sensor integration, autonomy and safety |
@@ -52,7 +52,7 @@ Priority: **M** must, **S** should, **C** could. Every target is checked by the 
 
 ## 3. Explicit non-goals
 - No real autonomy, obstacle avoidance, GPS waypoint navigation or water trials this weekend; the mission is **simulated and supervised**. GPS is used to show position only.
-- No automatic roll/pitch correction (the rudder steers yaw only). No voice control. No Raspberry Pi.
+- No automatic roll/pitch correction (the rudder steers yaw only). No voice control.
 - Not certified; no claim of compliance with maritime or naval standards. Autonomous vessel trials must still follow applicable maritime rules.
 - No invented statistics, costs, military requirements or test outcomes. No cost-saving claims without a comparison.
 

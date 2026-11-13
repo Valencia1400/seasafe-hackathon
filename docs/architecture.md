@@ -20,7 +20,7 @@ Owners: Person 2 (both ESP32s, safety) and Person 3 (laptop dashboard). **Freeze
          |-- E-stop button + safety state machine
          '-- Optional: P controller on yaw rate -> rudder (PID = stretch)
 ```
-There is **no Raspberry Pi** and **no voice control** in the design (decision D-007).
+The laptop and the two ESP32s are the only computers in the design; there is **no voice control** (decision D-007).
 
 **Status of each part (keep honest):**
 | Part | Status |

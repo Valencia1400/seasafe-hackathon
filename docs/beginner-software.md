@@ -19,7 +19,7 @@ I am in the software group, and I own research, the user story, the AI log and t
 Our project: SeaGuardian, a small unmanned boat concept for harbour inspection after storms or incidents. A laptop runs a simulated
 inspection mission and a dashboard; ESP32 #1 (small microcontroller) streams camera video; ESP32 #2 reads sensors (tilt, GPS position,
 air pressure, water leak), drives one propeller motor and a rudder servo, and stops the motor by itself if something goes wrong
-(lost connection, emergency stop, leak). There is no Raspberry Pi. The mission is simulated; nothing goes in water.
+(lost connection, emergency stop, leak). The mission is simulated; nothing goes in water.
 Please explain in simple words, avoid jargon (or explain it), use short steps, and tell me when you are unsure. Never invent facts or numbers.
 ```
 
@@ -117,7 +117,7 @@ In `docs/ai-log/<your-name>.md` (in the GitHub browser), add:
 ## Words you will hear
 | Word | Simple meaning |
 |---|---|
-| Laptop | Runs the mission program and the dashboard (there is no Raspberry Pi) |
+| Laptop | Runs the mission program and the dashboard |
 | GPS | Tells where the boat is (position) |
 | Rudder + servo | The flap at the back that steers, and the small motor that turns it |
 | ESP32 | Tiny computer chip that reads sensors and controls motors |
