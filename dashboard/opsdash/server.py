@@ -40,6 +40,9 @@ class Dashboard:
     def command(self, name, body):
         now, c = time.monotonic(), self.console
         confirmed = body.get("confirm") is True
+        if name in ("camera-on", "camera-off"):   # outside self.lock: the camera logs through _log_event
+            ok, msg = self.camera.set_enabled(name == "camera-on")
+            return {"ok": ok, "message": msg}
         with self.lock:
             if name == "start":
                 ok, msg = c.start(now)

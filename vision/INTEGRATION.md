@@ -94,7 +94,9 @@ The default model is **YOLOE** (`yoloe-26s-seg.pt`): it finds whatever a list of
 |---|---|---|
 | `person` | Person in water / swimmer | Highest priority alert |
 | `boat` | Vessel | |
+| `ship` | Large vessel | |
 | `kayak` | Kayak / canoe | Small craft, hard to see on radar |
+| `life jacket` | Life jacket | A person may be in the water nearby |
 | `buoy` | Buoy | Navigation hazard / marker |
 | `floating debris` | Debris | Zero-shot: least reliable class, expect misses and false alarms |
 | `bottle` | Floating plastic (bottle) | |

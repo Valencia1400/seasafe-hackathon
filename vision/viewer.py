@@ -19,7 +19,7 @@ import numpy as np
 
 # Default model is YOLOE: it detects whatever these words describe, with no training (open vocabulary).
 # shortcut: zero-shot, so rarer things (debris, buoys) are less reliable than a model fine-tuned on FloW / SeaDronesSee.
-WATER_PROMPTS = "boat,kayak,person,buoy,floating debris,bottle,bird"
+WATER_PROMPTS = "boat,ship,kayak,person,life jacket,buoy,floating debris,bottle,bird"
 # With a plain COCO model (--model yolo26n.pt) only these classes are kept (bottle = floating plastic stand-in).
 WATER_CLASSES = {"person", "boat", "bird", "surfboard", "bottle"}
 STALE_S = 2.0  # no camera frame for this long -> cam "DOWN"

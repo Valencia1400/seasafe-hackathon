@@ -126,6 +126,23 @@ class T6CameraDown(unittest.TestCase):
         self.assertEqual(t.poll({**SAMPLE, "seq": 900})["status"], "OK")
 
 
+class CameraSwitch(unittest.TestCase):
+    def test_off_stops_polling_and_clears_detections_then_on_resumes(self):
+        t = Mon()
+        self.assertEqual(t.poll()["status"], cam.OK)
+        self.assertEqual(t.m.set_enabled(False), (True, "ok"))
+        t.url = None
+        s = t.poll()
+        self.assertEqual((s["status"], s["detections"], t.url), (cam.OFF, [], None))   # not even fetched
+        self.assertTrue(any("turned off" in text for _, text in t.events))
+        t.m.set_enabled(True)
+        self.assertEqual(t.poll()["status"], cam.OK)
+        self.assertEqual(len(t.m.snapshot()["detections"]), 2)
+
+    def test_switch_without_a_viewer_is_refused(self):
+        self.assertFalse(Mon(url=None).m.set_enabled(False)[0])
+
+
 class T7MalformedOrMissingResponses(unittest.TestCase):
     def test_bad_responses_never_raise_and_never_show_detections(self):
         bad = [None, [], "text", 42, {}, {"cam": "OK"}, {"cam": "MAYBE", "src": "esp32"},

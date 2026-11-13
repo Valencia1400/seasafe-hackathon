@@ -38,6 +38,7 @@ REVIEW_NOTICE = "Potential object detected - operator review required"
 
 NOT_CONFIGURED, CONNECTING, OK = "NOT_CONFIGURED", "CONNECTING", "OK"
 CAMERA_DOWN, VIEWER_UNREACHABLE, STALE, BAD_RESPONSE = "CAMERA_DOWN", "VIEWER_UNREACHABLE", "STALE", "BAD_RESPONSE"
+OFF = "OFF"   # turned off by the operator: no polling, no video, no detections
 
 
 def fetch_json(url, timeout=FETCH_TIMEOUT_S):
@@ -95,6 +96,7 @@ class CameraMonitor:
         self._clock = clock
         self._lock = threading.Lock()
         self._stop = threading.Event()
+        self.enabled = True
         self.status = CONNECTING if self.url else NOT_CONFIGURED
         self.message = ""
         self.info, self.dets, self.ignored = {}, [], 0
@@ -115,9 +117,17 @@ class CameraMonitor:
             self.poll_once()
             self._stop.wait(POLL_PERIOD_S)
 
+    def set_enabled(self, on):
+        """Operator camera switch. Returns (ok, message) like the console commands."""
+        if not self.url:
+            return False, "No camera viewer configured."
+        self.enabled = bool(on)
+        self._set(CONNECTING if on else OFF, self._clock(), "" if on else "Camera turned off by the operator", clear=True)
+        return True, "ok"
+
     def poll_once(self):
         """One poll. Never raises: every failure becomes a status."""
-        if not self.url:
+        if not self.url or not self.enabled:
             return
         now = self._clock()
         try:
@@ -151,6 +161,8 @@ class CameraMonitor:
 
     def _set(self, status, now, message, info=None, dets=None, ignored=0, clear=False):
         with self._lock:
+            if not self.enabled and status != OFF:
+                return   # a poll that was in flight when the camera was turned off
             self.status, self.message = status, message
             self.info = info or {}
             self.dets = [] if clear or dets is None else dets   # never keep old detections on a bad poll
@@ -175,6 +187,10 @@ class CameraMonitor:
             self._log("Camera detections frozen: not shown as live", "warn")
         elif status == BAD_RESPONSE:
             self._log("Camera viewer sent an unreadable response", "warn")
+        elif status == OFF:
+            self._log("Camera turned off by the operator (video and detections paused)")
+        elif status == CONNECTING:
+            self._log("Camera turned on by the operator")
 
     def _announce_detections(self, dets, info, now):
         test = info.get("src") != "esp32"
