@@ -42,6 +42,17 @@ Requirement -> AI-generated design -> human review -> physical or simulated test
 
 ## Entries
 
+### AI-001 - Pi software and simulator: wrong assumption about the comms-loss timing
+- Time / person / task: Fri 13 Nov, Person 3 with Claude Code (Fable 5.2), dashboard + ESP32 simulator
+- AI tool + model: Claude Code, Claude Fable 5.2
+- Prompt: "Write the ESP32 safety firmware and the Pi dashboard with simulator" (following docs/architecture.md)
+- Result: Python controller, simulated ESP32, dashboard, 13 unit tests; ESP32 Arduino firmware.
+- Human verification: unit tests run with a fake clock; the dashboard run in simulator mode and driven through its API (mission start, tilt, link cut, reset).
+- Errors / limitations found: 1 of 13 tests failed. The AI-written test expected the motor stop exactly 1.0 s after the link was cut, but the timeout counts from the **last heartbeat**, sent up to 0.2 s before the cut. Measured in the live run: stop 842 ms after the cut. The safety code was right; the AI's expectation (and our requirement wording) was too simple. A second issue found in review: a missing IMU (null values) would have crashed the tilt check.
+- Changes made afterwards: test now expects the stop 0.8-1.05 s after the cut; timing explained in docs/architecture.md and dashboard/README.md; tilt check handles null values, with a new test (14 tests pass).
+- Still unverified: the firmware has not been compiled or run on an ESP32.
+- Linked: R8, R9, R11
+
 > **The entry below is an EXAMPLE of the format. It is NOT real work that was done.** Delete it when the first real entry is added.
 
 ### EXAMPLE-1 - First CAD part from a requirement *(example, not real)*

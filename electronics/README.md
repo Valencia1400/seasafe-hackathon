@@ -10,6 +10,15 @@ Protocol and safety rules: [docs/architecture.md](../docs/architecture.md). Requ
 5. Pressure sensor (atmospheric pressure, hPa).
 6. Leak input (R7) - a real leak sensor or two wires/a button as a clearly labelled test input.
 
+## Firmware: `firmware/seaguardian_esp32/seaguardian_esp32.ino`
+**Status: written with AI help, NOT yet compiled or run on hardware.** Open it in the Arduino IDE (ESP32 board package 2.x or 3.x, no extra libraries), check the pin table at the top against the wiring, compile, upload.
+
+- Sensors supported out of the box: MPU-6050 IMU (0x68) and BMP280 pressure (0x76/0x77). Other models: change `imuBegin/imuRead` or `baroBegin/baroRead`. A missing sensor is reported as `null` (shown as "-" on the dashboard), so the safety logic can be tested before sensors arrive.
+- Physical E-STOP button on `PIN_ESTOP_BTN` (to GND) works without the Pi.
+- Status LED: steady = OK, blinking = safety stop.
+- Quick check without the Pi: open the Serial Monitor (115200), you should see telemetry lines. Type `{"t":"hb","seq":1}` and press Enter, wait more than 1 s, and you should see `{"t":"evt",...,"evt":"COMMLOST"}`.
+- Then connect to the dashboard: `python run.py --port COMx` in `dashboard/`.
+
 ## Bench motor output
 LEDs (with resistors) or a motor driver with motors but **no propellers**. Show the output value in telemetry (`l`, `r`) so stops can be timed from the log.
 

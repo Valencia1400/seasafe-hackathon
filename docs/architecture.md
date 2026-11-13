@@ -42,6 +42,13 @@ ESP32 -> Pi (telemetry, 5-10 Hz)
 
 Events ESP32 -> Pi: `{"t":"evt","ms":605200,"evt":"COMMLOST"}` whenever the state changes.
 
+Additions (implemented in the code):
+- A sensor that is not connected is sent as `null` (e.g. `"roll":null`).
+- The simulator adds `"src":"SIM"` to every message; the dashboard then shows SIMULATED.
+- Motor commands are ignored until the first heartbeat after boot; the timeout is only armed after that first heartbeat (so a booting ESP32 does not start in COMMLOST).
+- The comms-loss stop comes 0.8-1.05 s after the link is cut, because the timeout counts from the last heartbeat (sent every 200 ms).
+- ESTOP from the physical button can only be reset once the button is released.
+
 ## ESP32 safety state machine
 ```
  OK --estop msg--------> ESTOP    --reset (operator)--> OK
