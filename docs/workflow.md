@@ -11,38 +11,36 @@
 
 ## Checkpoints (every 60-90 minutes, 5 minutes, standing at the table)
 Each person answers: **What is done? What am I on now? Am I blocked? Does anyone need something from me? Are we on track for the demo?**
-Person 3 updates the status table in README.md and the issue board. **Nobody stays blocked > 30 minutes** - say it out loud and add the `Blocked` label.
+Person 3 updates the status table in README.md. **Nobody stays blocked > 30 minutes** - say it out loud.
 
-Rule of the weekend: **no stretch goal work until that day's essential issues are Done.**
+Rule of the weekend: **no stretch work until that day's essentials are Done.**
 
 ## Friday / Saturday plan (adjust to the official schedule)
 **Friday**
-1. First hour: all five read the brief together. P3 fills docs/requirements.md section 1. P2 confirms components, P1 confirms printer. P5 starts research. P4 builds the dummy module + tub setup.
-2. P2 -> P1: module dimensions by midday (critical path).
-3. P1: CAD v1 and first print started by evening (long prints overnight if the venue allows). P4: flotation mock-up (bottle + ballast) to learn how self-righting behaves.
-4. P2: LED + button circuit on breadboard, tested dry. P3: integration plan, AI log running.
-5. Evening checkpoint: requirements frozen v1, CAD v1 sliced, circuit works, mock-up results recorded.
+1. Brief presentation: everyone listens; Person 3 and 5 write the brief into docs/requirements.md section 1.
+2. Within 1 hour: score 2-3 concepts (see README), pick one, record it in docs/decisions.md. P1 confirms printer and queue time.
+3. P1 + AI: CAD v1, slicer check, **first print started the same afternoon** (< 3 h print). P4 writes the test procedure while it prints. P5 starts research and the pitch outline.
+4. Evening checkpoint: requirements v1, CAD v1 printed or printing, test procedure ready.
 
 **Saturday**
-1. Morning: print/assemble housing, test flotation (T-R1, T-R2). Integrate electronics into module. Module swap (T-R4).
-2. Midday: pick the failing test -> AI-assisted CAD v2 -> reprint -> retest (R8).
-3. Afternoon: stretch goals only if all essentials Done. Record backup video. Fill test-results.md. Finish pitch + demo script.
-4. Evening: **prototype freeze** at the agreed time. After freeze: only documentation, rehearsal, backups.
+1. Morning: test v1, record numbers.
+2. Midday: AI-assisted change -> v2 print -> retest (R4).
+3. Afternoon: backup video, test-results.md filled, pitch + demo script.
+4. Evening: **prototype freeze**. After freeze: only docs, rehearsal, backups.
 
-**Sunday:** rehearse twice, demo readiness checklist (presentation/demo-script.md), present, Q&A. No new features.
+**Sunday:** rehearse twice, readiness checklist (presentation/demo-script.md), present, Q&A. No new features.
 
 ## Git workflow (simple)
-- `main` = stable. Always demo-able. Only technical members merge; beginners edit docs in the browser.
+- `main` = stable. Only technical members merge; beginners edit docs in the browser.
 - Branches: `feature/cad`, `feature/electronics`, `feature/dashboard`. Docs/tests/presentation edits can go straight to `main` through the browser (small edits only).
-- Each person only edits **their own folder** (see README map). That avoids conflicts.
+- Each person only edits **their own folder** (see README map).
 
 ### Edit docs in the GitHub browser (beginners: Persons 4 and 5)
 1. Open the repo on github.com, click the file (e.g. `tests/test-results.md`).
 2. Click the pencil icon (Edit).
 3. Type your change. Tables: copy a row and fill it in.
-4. Click **Commit changes**, write a short message ("Add flotation trial 1"), choose **Commit directly to the main branch**, click **Commit changes**.
+4. Click **Commit changes**, write a short message, choose **Commit directly to the main branch**, click **Commit changes**.
 5. If GitHub says someone else changed the file: copy your text, reload the page, paste it again, commit again.
-Photos/videos: drag small images into an issue comment and link them, or put them in Discord and paste the link into test-results.md.
 
 ### Technical members (command line)
 ```bash
@@ -51,19 +49,18 @@ cd seasafe-hackathon
 git checkout -b feature/cad        # first time (or: git checkout feature/cad)
 # ...edit files in your own folder...
 git add cad/
-git commit -m "CAD: add ballast parameter"
+git commit -m "CAD: add first part"
 git push -u origin feature/cad
 ```
-Open a pull request on GitHub (button "Compare & pull request"), base = `main`. Keep PRs small. Person 1 reviews and clicks **Merge pull request** (use "Squash and merge" if unsure). Then everyone updates:
+Open a pull request on GitHub, base = `main`. Keep PRs small. Person 1 reviews and merges. Then everyone updates:
 ```bash
 git checkout main
 git pull
 ```
-Before starting new work on a branch: `git pull origin main` into it (or `git merge main`).
 If conflict: stop and ask Person 1; do not force-push.
 
 ## Discord (only for sharing)
-Channels/threads as needed: prompts, links, screenshots, decisions, GitHub updates. Decisions that matter are copied into docs/decisions.md. Do not use Discord instead of talking at the table.
+Prompts, links, screenshots, decisions. Decisions that matter are copied into docs/decisions.md.
 
 ## Issue rules
-Every issue has: description, role, priority (P1 must / P2 should / P3 stretch), deadline (milestone), Definition of Done, dependencies. Move the card **To Do -> In Progress -> Done** yourself. Use `Blocked` when stuck.
+Every issue has: description, role, priority (P1 must / P2 should / P3 stretch), deadline, Definition of Done, dependencies. Move it **To Do -> In Progress -> Done** yourself.

@@ -7,5 +7,5 @@ Closes #  / Requirement ID:
 ## Checked
 - [ ] Only touched my own folder
 - [ ] If CAD: STL exported and slicer-checked, parameter table updated
-- [ ] If AI helped: entry added to docs/ai-process.md
+- [ ] If AI helped: entry added to docs/ai-process.md or docs/ai-log/
 - [ ] Nothing here claims more than we tested

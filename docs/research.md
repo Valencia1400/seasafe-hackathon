@@ -2,13 +2,12 @@
 
 Rule: **every claim needs a source link.** If AI gave it and you cannot verify it, do not use it. No invented statistics, costs or military requirements.
 
-## Questions to answer (Friday)
-1. What kinds of rescue / locator beacons exist for people in water and for vessels? (types, what they do)
-2. Where do they leave room for improvement (e.g. repair, adaptation, customisation)? Facts only.
-3. What does Saab / MTC say about the challenge and what they value?
-4. What standards exist for such equipment? (We only *mention* that certification exists; we do not claim compliance.)
+## Questions to answer (after the brief)
+1. What problem does the brief describe, in its own words?
+2. What existing products or solutions address it? Where do they leave room for improvement? Facts only.
+3. What do Saab / MTC say they value?
 
-## Existing products table
+## Existing solutions table
 | Product / type | What it does | Source link | Our takeaway |
 |---|---|---|---|
 | | | | |

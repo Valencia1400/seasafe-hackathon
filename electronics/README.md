@@ -1,26 +1,21 @@
 # Electronics - Owner: Person 2 (support: Person 3)
 
-## Scope
-Essential: **button -> LED flash**, battery powered, on a **removable module** with a defined interface.
-Optional (only after essentials pass): ESP32 wireless alert, water-contact sensor, battery indicator.
+**Only if the chosen concept needs electronics.** Otherwise Person 2 supports CAD, assembly and testing.
 
-## First deliverable (Friday, early): module envelope
-Send Person 1 the module dimensions, mass and connector position **before CAD freeze**.
+## First deliverable (if used): dimensions for CAD
+Send Person 1 the size, mass and connector positions of any part that goes inside the print **before CAD freeze**.
 
 | Item | Value | Source / measured by |
 |---|---|---|
-| Module length x width x height (mm) | ? | |
-| Module mass (g) | ? | |
-| Battery type / holder | ? | |
-| How the module connects to the housing | ? | |
-| Button type and position | ? | |
-| LED type and resistor value | ? | |
+| Board / components size (mm) | | |
+| Mass (g) | | |
+| Battery / power | | |
+| Mounting and connector position | | |
 
 ## Safety rules
-- **Exposed or unverified electronics never go in water.** Flotation tests use an **unpowered dummy module of the same mass**.
-- Use a low-voltage primary battery pack (e.g. AAA/AA cells). **No loose LiPo/Li-ion cells in or near water tests.**
 - Current-limiting resistor on every LED; check battery polarity before connecting.
-- Person 2 signs off any powered test in the log below.
+- Prefer primary cells (AA/AAA); no loose LiPo cells.
+- No exposed electronics near water or heat.
 
 ## Folders
 - `firmware/` - sketches. Commit only code that has been run on hardware; note board and result below.
