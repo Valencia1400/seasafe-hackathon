@@ -33,3 +33,6 @@ __pycache__/
 
 # SeaGuardian dashboard session logs (copy evidence to tests/evidence/)
 dashboard/logs/
+
+# YOLO weights (downloaded on first run of vision/viewer.py)
+*.pt

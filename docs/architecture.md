@@ -15,6 +15,8 @@ Owners: Person 2 (ESP32, safety) and Person 3 (Pi, dashboard). **Freeze the prot
    '-- Motor outputs L/R (bench: LEDs or motor driver without propeller)
 ```
 
+**Camera (separate board):** a XIAO ESP32S3 Sense streams video over Wi-Fi; `vision/viewer.py` runs object detection on it and serves the results to the dashboard. Endpoints and JSON: [vision/INTEGRATION.md](../vision/INTEGRATION.md). The camera has no part in the safety chain.
+
 **Design rule:** the ESP32 never needs the Pi to be safe. If the Pi crashes, freezes or the cable is pulled, the ESP32 stops the motors by itself.
 
 ## Messages (JSON lines)
