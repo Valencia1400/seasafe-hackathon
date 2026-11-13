@@ -7,7 +7,8 @@ the annotated video and detections on `http://127.0.0.1:8001`. **Dashboard team:
 ## 1. Flash the camera (once)
 
 1. Wi-Fi: the firmware joins the team hotspot **`Armin – iPhone`** (password `password`) by default. Turn on
-   *Maximize Compatibility* on the iPhone (2.4 GHz only). Note the iPhone names it with a long dash (–), not `-`.
+   *Maximize Compatibility* on the iPhone (2.4 GHz only) and keep the Personal Hotspot screen open while the
+   board joins: iOS hides the hotspot from new devices once that screen is closed. The board retries every 15 s. Note the iPhone names it with a long dash (–), not `-`.
    Another network: copy `secrets.example.h` to `secrets.h` (git-ignored) and fill it in. If the network is not
    found within 15 s, the board prints the networks it can see and makes its own Wi-Fi "SeaSafe-Cam"
    (password `seasafe123`, camera at `http://192.168.4.1`).

@@ -5,7 +5,7 @@
 // Board: "XIAO_ESP32S3" (ESP32 Arduino core 3.x), Tools > PSRAM: "OPI PSRAM" (needed for the camera).
 // Wi-Fi: joins the team hotspot below by default. Other network: copy secrets.example.h to secrets.h (git-ignored).
 //        No secrets.h, or the network is not found within 15 s -> the board starts its own
-//        access point "SeaSafe-Cam" (password in AP_PASS) and serves on http://192.168.4.1
+//        access point "SeaSafe-Cam" (password in AP_PASS, http://192.168.4.1) and keeps retrying the hotspot.
 //
 //   http://<ip>/          quick test page
 //   http://<ip>/status    JSON status (CORS open)
@@ -57,7 +57,7 @@ const int JPEG_QUALITY = 12;                   // 0-63, lower = better quality a
 static const char *STREAM_TYPE = "multipart/x-mixed-replace;boundary=" BOUNDARY;
 static const char *PART_HDR = "\r\n--" BOUNDARY "\r\nContent-Type: image/jpeg\r\nContent-Length: %u\r\nX-Timestamp: %lu\r\n\r\n";
 
-static bool apMode = false;
+static bool apUp = false;  // own network "SeaSafe-Cam" is running (hotspot not found at boot)
 static String wifiProblem;  // why joining failed + the networks the board could see; repeated on serial
 static const char *sensorName = "unknown";
 static volatile bool streaming = false;
@@ -119,14 +119,17 @@ static void startWifi() {
     WiFi.disconnect();
     int n = WiFi.scanNetworks();
     for (int i = 0; i < n; i++) wifiProblem += " '" + WiFi.SSID(i) + "'";
-    Serial.println(wifiProblem + "\nStarting own access point.");
+    Serial.println(wifiProblem + "\nStarting own network SeaSafe-Cam and retrying the hotspot.");
   }
-  apMode = true;
-  WiFi.mode(WIFI_AP);
+  // Own network so the camera is always reachable; loop() keeps retrying the hotspot, which may come up later.
+  apUp = true;
+  WiFi.mode(WIFI_AP_STA);
   WiFi.softAP(AP_SSID, AP_PASS);
 }
 
-static String ipString() { return apMode ? WiFi.softAPIP().toString() : WiFi.localIP().toString(); }
+static bool joined() { return WiFi.status() == WL_CONNECTED; }
+
+static String ipString() { return joined() ? WiFi.localIP().toString() : WiFi.softAPIP().toString(); }
 
 static void cors(httpd_req_t *req) { httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*"); }
 
@@ -138,8 +141,8 @@ static esp_err_t statusHandler(httpd_req_t *req) {
            "{\"t\":\"cam\",\"id\":\"%s\",\"ms\":%lu,\"ip\":\"%s\",\"mode\":\"%s\",\"rssi\":%d,"
            "\"sensor\":\"%s\",\"w\":%u,\"h\":%u,\"quality\":%d,\"streaming\":%s,\"fps\":%.1f,"
            "\"frames\":%lu,\"heap\":%u,\"psram\":%u}",
-           HOSTNAME, (unsigned long)millis(), ipString().c_str(), apMode ? "AP" : "STA",
-           apMode ? 0 : (int)WiFi.RSSI(), sensorName, resolution[fsz].width, resolution[fsz].height,
+           HOSTNAME, (unsigned long)millis(), ipString().c_str(), joined() ? "STA" : "AP",
+           joined() ? (int)WiFi.RSSI() : 0, sensorName, resolution[fsz].width, resolution[fsz].height,
            s ? s->status.quality : JPEG_QUALITY, streaming ? "true" : "false", streaming ? fps : 0.0f,
            (unsigned long)framesSent, (unsigned)ESP.getFreeHeap(), (unsigned)ESP.getFreePsram());
   httpd_resp_set_type(req, "application/json");
@@ -227,9 +230,16 @@ void setup() {
 }
 
 void loop() {
+  // Hotspot missing at boot, or lost later (phone out of range): keep trying, no reboot needed.
+  static uint32_t lastTry = 0;
+  if (strlen(WIFI_SSID) > 0 && !joined() && millis() - lastTry > 15000) {
+    lastTry = millis();
+    WiFi.begin(WIFI_SSID, WIFI_PASS);
+  }
+  if (joined()) wifiProblem = "";
   // Repeat the address so it is visible whenever the Serial Monitor is opened.
   Serial.printf("[%s] http://%s/  stream: http://%s:81/stream  (%s.local)  sensor=%s streaming=%d fps=%.1f\n",
-                apMode ? "AP SeaSafe-Cam" : "STA", ipString().c_str(), ipString().c_str(), HOSTNAME, sensorName,
+                joined() ? "STA" : apUp ? "AP SeaSafe-Cam" : "NO WIFI, retrying", ipString().c_str(), ipString().c_str(), HOSTNAME, sensorName,
                 (int)streaming, streaming ? fps : 0.0f);
   if (wifiProblem.length()) Serial.println("  Wi-Fi: " + wifiProblem);
   delay(5000);
