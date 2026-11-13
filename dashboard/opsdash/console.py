@@ -210,6 +210,7 @@ class OperatorConsole:
     def snapshot(self, now):
         snap = self.mission.snapshot()
         snap["allowed"]["start"] = snap["allowed"]["start"] and self.comms_ok and self.last_state == p.OK
+        cfgd = self.cfg.to_dict()
         t = self.telemetry
         stale = t is not None and not self.comms_ok
         warnings = []
@@ -233,10 +234,10 @@ class OperatorConsole:
             "warnings": warnings,
             "tilt_warning": self.tilt_warning,
             "controller_state": self.last_state,
-            "config": self.cfg.to_dict(),
+            "config": cfgd,
             "mission_elapsed_s": None if self.started_at is None or self.mission.state != m.RUNNING
             else round(now - self.started_at),
             "track": self.track,
-            "camera": {"connected": False},
+            "camera": {"viewer_url": cfgd["camera_viewer_url"]},
         })
         return snap

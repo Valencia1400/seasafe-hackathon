@@ -39,6 +39,9 @@ class Config:
     imu_pitch_sign: int = 1
     imu_yaw_sign: int = 1
     imu_swap_roll_pitch: bool = False   # True if the board's X axis points to the side instead of forward
+    # Address of vision/viewer.py (annotated camera stream + detections), e.g. "http://127.0.0.1:8001".
+    # None = no camera: the dashboard shows a placeholder. See vision/INTEGRATION.md.
+    camera_viewer_url: str = None
 
     def validate(self):
         if not 0 < self.rudder_limit_deg <= 90:
@@ -50,6 +53,9 @@ class Config:
         for name in ("imu_roll_sign", "imu_pitch_sign", "imu_yaw_sign"):
             if getattr(self, name) not in (1, -1):
                 raise ValueError(f"{name} must be 1 or -1")
+        url = self.camera_viewer_url
+        if url is not None and not (isinstance(url, str) and url.startswith(("http://", "https://"))):
+            raise ValueError("camera_viewer_url must be None or start with http:// or https://")
         return self
 
     @classmethod
@@ -65,6 +71,8 @@ class Config:
     def to_dict(self):
         d = asdict(self)
         d["unconfirmed"] = list(UNCONFIRMED)
+        if d["camera_viewer_url"]:
+            d["camera_viewer_url"] = d["camera_viewer_url"].rstrip("/")
         return d
 
     def imu_to_vessel(self, roll, pitch, yaw_rate):

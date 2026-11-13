@@ -17,7 +17,7 @@ Protocol and safety rules: [docs/architecture.md](../docs/architecture.md). Requ
 - Physical E-STOP button on `PIN_ESTOP_BTN` (to GND) works without the laptop.
 - Status LED: steady = OK, blinking = safety stop.
 - Quick check without the laptop dashboard: open the Serial Monitor (115200), you should see telemetry lines. Type `{"t":"hb","seq":1}` and press Enter, wait more than 1 s, and you should see `{"t":"evt",...,"evt":"COMMLOST"}`.
-- Then connect to the dashboard: `python run.py --port COMx` in `dashboard/`.
+- Dashboard hardware mode is not implemented yet: it needs the protocol agreed in `docs/architecture.md` first. Until then the dashboard (`dashboard/`) runs on its simulator.
 
 ## Camera firmware: `firmware/seasafe_cam/seasafe_cam.ino`
 Seeed XIAO ESP32S3 Sense: MJPEG stream + JSON status over Wi-Fi, for the detector in `vision/`. Board `XIAO_ESP32S3`, PSRAM `OPI PSRAM`. Wi-Fi goes in `secrets.h` (copy `secrets.example.h`, git-ignored). How to flash and run: [vision/README.md](../vision/README.md); endpoints: [vision/INTEGRATION.md](../vision/INTEGRATION.md).

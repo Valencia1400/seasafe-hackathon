@@ -122,7 +122,7 @@ run a SIMULATED inspection mission (states: IDLE -> TRANSIT -> INSPECTING -> RET
 stop the mission and command motors 0 on any fault event, and expose state + an event log to a web dashboard.
 Use only pyserial plus one small web framework. Include a flag to run against a simulator instead of real hardware. Keep it in few files.
 ```
-**Prompt S-2 - ESP32 simulator** *(DONE - already built in dashboard/seaguardian/sim_esp32.py; Person 5: use [beginner-software.md](beginner-software.md) instead)*
+**Prompt S-2 - ESP32 simulator** *(DONE - already built in dashboard/opsdash/simulator.py; Person 5: use [beginner-software.md](beginner-software.md) instead)*
 ```
 Write a small Python simulator that pretends to be the SeaGuardian ESP32, speaking this protocol: [paste the "Messages" and "ESP32 safety state machine" sections of docs/architecture.md].
 It should emit realistic-looking IMU, pressure and leak messages, and let me trigger faults from the keyboard: tilt, leak, leak, E-stop, and "laptop stops sending heartbeats".

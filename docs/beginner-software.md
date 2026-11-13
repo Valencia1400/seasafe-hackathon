@@ -33,8 +33,8 @@ from "just a small autonomous boat". Then give me the 5 hardest questions a Saab
 ```
 
 ### Step 2 - try the dashboard yourself (30 minutes, with Person 3)
-Person 3 starts it on a laptop: `python run.py --sim` in the `dashboard` folder, then open http://127.0.0.1:8000.
-- Click **Start mission**, **Toggle tilt**, **Cut link**, **E-STOP**, **Reset**. Watch what changes.
+Person 3 starts it on a laptop: `python run_operator.py` in the `dashboard` folder, then open http://127.0.0.1:8000.
+- Click **Start mission**, **Trigger tilt event**, **Cut comms link**, **E-STOP**, **Reset**. Watch what changes.
 - Write down everything that confused you (words, colours, where to look). Give the list to Person 3 - **they** change the code.
 
 Prompt S5-2:

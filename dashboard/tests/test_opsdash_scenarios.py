@@ -278,6 +278,15 @@ class ConfigurableLimitsAndImuMounting(unittest.TestCase):
             with self.assertRaises(ValueError):
                 Config.from_json(bad)
 
+    def test_camera_viewer_url_defaults_to_placeholder_and_is_validated(self):
+        b = Bench()
+        self.assertIsNone(b.c.snapshot(b.now)["camera"]["viewer_url"])
+        b = Bench(Config(camera_viewer_url="http://127.0.0.1:8001/"))
+        self.assertEqual(b.c.snapshot(b.now)["camera"]["viewer_url"], "http://127.0.0.1:8001")
+        for bad in ("javascript:alert(1)", "127.0.0.1:8001", "file:///etc/passwd", 5):
+            with self.assertRaises(ValueError, msg=str(bad)):
+                Config(camera_viewer_url=bad).validate()
+
     def test_snapshot_lists_unconfirmed_values(self):
         b = Bench()
         cfg = b.c.snapshot(b.now)["config"]

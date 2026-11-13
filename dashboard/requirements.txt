@@ -1,2 +1,0 @@
-# Only needed with a real ESP32 (--port). The simulator (--sim) needs nothing beyond Python 3.9+.
-pyserial>=3.5

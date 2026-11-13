@@ -61,7 +61,7 @@ Make a checklist that compares them wire by wire. Do not tell me it is correct -
 ```
 
 ### Step 4 - learn the tests on the simulator (20 minutes, with Person 3)
-Person 3 runs `python run.py --sim` in the `dashboard` folder. Click **Start mission**, then **Toggle tilt**, then **Cut link**, and watch the event log. These are the same tests you will run on the real hardware.
+Person 3 runs `python run_operator.py` in the `dashboard` folder. Click **Start mission**, then **Trigger tilt event**, then **Cut comms link**, and watch the event log. These are the same tests you will run on the real hardware.
 
 ### Step 5 - turn tests into checklists
 Start with T-R6 (tilt), T-R8 (E-stop) and T-R9 (cut link) from [tests/test-plan.md](../tests/test-plan.md).
