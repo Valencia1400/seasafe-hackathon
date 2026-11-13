@@ -93,14 +93,14 @@ The default model is **YOLOE** (`yoloe-26s-seg.pt`): it finds whatever a list of
 | `cls` | Shown as | Notes |
 |---|---|---|
 | `person` | Person in water / swimmer | Highest priority alert |
-| `boat` | Vessel | |
+| `boat` | Vessel | Small craft |
 | `ship` | Large vessel | |
-| `kayak` | Kayak / canoe | Small craft, hard to see on radar |
-| `life jacket` | Life jacket | A person may be in the water nearby |
-| `buoy` | Buoy | Navigation hazard / marker |
-| `floating debris` | Debris | Zero-shot: least reliable class, expect misses and false alarms |
 | `bottle` | Floating plastic (bottle) | |
 | `bird` | Bird | Mostly useful to explain false alarms |
+
+**Not in the default list, on purpose:** buoy, kayak, floating debris and life jacket. On 64 public-domain test photos
+the no-training model found buoy 0/10, kayak 0/4, debris 0/6 and life jacket 1/10, and the word "kayak" fired on a
+dog wearing a life jacket. Those need a fine-tuned model.
 
 **Handle any `cls` string**: the word list can change (`--prompts "boat,ship,life jacket"`), and `cls` may contain
 spaces. With `--model yolo26n.pt` the old COCO classes come back: `person`, `boat`, `bird`, `surfboard`, `bottle`.

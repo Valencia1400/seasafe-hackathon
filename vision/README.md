@@ -37,6 +37,10 @@ Then:
 Open http://127.0.0.1:8001/. The first run downloads the YOLOE weights (`yoloe-26s-seg.pt`) and installs its text encoder (CLIP), so do it once with
 internet before the demo. On a slow laptop add `--imgsz 320` for about 4x the speed.
 
+**Printable test targets:** `demo-targets.pdf` (11 A4 pages: boat, ship, person, bottle). Every photo was checked with
+the default model first; all are public domain or CC0 from Wikimedia Commons (credit on each page). Print in colour,
+hold the page 30-60 cm from the camera, and avoid glare.
+
 Tests (no camera or model needed): `.venv/bin/python -m unittest test_viewer -v`
 
 ## Files
