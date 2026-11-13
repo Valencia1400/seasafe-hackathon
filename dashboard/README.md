@@ -12,7 +12,9 @@ Open http://127.0.0.1:8000.
 | Mission state machine READY/RUNNING/STOPPED/FAULT, Start/Stop/E-STOP/Reset, event log | Implemented (simulated) |
 | Simulated IMU (roll, pitch, yaw rate), GPS position + validity, DC motor, rear rudder | Implemented (simulated) |
 | Scenarios: normal mission, tilt, comms loss (1.0 s timeout), E-STOP, steering, leak | Implemented (simulated) |
-| Camera panel | Placeholder only, no video |
+| Provisional limits (rudder, throttle) and IMU mounting in `opsdash/config.py` / `--config file.json`, shown as UNCONFIRMED | Implemented; values are placeholders, not specifications |
+| Message format | Follows the PROPOSED protocol in `docs/architecture.md` (`thr`, `rud`, `gz`, `lat`, `lon`, `fix`); not agreed with Person 2 or in firmware yet |
+| Camera panel | Placeholder only, no video. Next step: show the `vision/viewer.py` stream and detections (see `vision/INTEGRATION.md`), labelling `src != esp32` as TEST |
 | Hardware mode (real ESP32 data and commands) | Future: needs the protocol agreed with Person 2 and tested equipment |
 | PID steering | Not implemented |
 

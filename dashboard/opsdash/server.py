@@ -18,9 +18,9 @@ TICK_S = 0.05
 class Dashboard:
     """Runs the console on a background thread and applies operator commands (one lock)."""
 
-    def __init__(self):
+    def __init__(self, config=None):
         self.lock = threading.Lock()
-        self.console = OperatorConsole(time.monotonic())
+        self.console = OperatorConsole(time.monotonic(), config=config)
         self.running = True
 
     def loop(self):
@@ -95,8 +95,8 @@ def make_handler(dash):
     return Handler
 
 
-def serve(host="127.0.0.1", port=8000):
-    dash = Dashboard()
+def serve(host="127.0.0.1", port=8000, config=None):
+    dash = Dashboard(config)
     threading.Thread(target=dash.loop, daemon=True).start()
     server = ThreadingHTTPServer((host, port), make_handler(dash))
     print(f"SeaGuardian operator dashboard (SIMULATION) on http://{host}:{port}  - Ctrl+C to stop")

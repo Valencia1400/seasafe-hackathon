@@ -122,10 +122,17 @@
     <h2>F. Safety monitoring</h2>
     <div class="row"><span>Controller communication</span><b id="comms">-</b></div>
     <div class="row"><span>Emergency stop</span><b id="estop-state">-</b></div>
-    <div class="row"><span>Controller fault</span><b id="cfault">-</b></div>
+    <div class="row"><span>Controller state</span><b id="cfault">-</b></div>
     <div class="row"><span>Leak sensor</span><b id="leak">-</b></div>
     <div class="row"><span>Latched fault causes</span><b id="causes">-</b></div>
-    <div class="note">Communication-loss rule (simulated): if the control ESP32 hears no laptop heartbeat for 1.0 s it stops the motor itself and latches COMMS_TIMEOUT. The dashboard shows COMMS LOST after 1.0 s without telemetry. The real ESP32 must enforce this independently: the laptop is never the only safety mechanism.</div>
+    <div class="note">Communication-loss rule (simulated): if the control ESP32 hears no laptop heartbeat for 1.0 s it stops the motor itself and enters COMMLOST. The dashboard shows COMMS LOST after 1.0 s without telemetry. The real ESP32 must enforce this independently: the laptop is never the only safety mechanism.</div>
+  </section>
+
+  <!-- Configuration -->
+  <section class="panel">
+    <h2>Configuration <span class="tag future">PLACEHOLDERS, NOT SPECIFICATIONS</span></h2>
+    <div id="cfg"></div>
+    <div class="note">Set in <code>opsdash/config.py</code> or with <code>--config file.json</code>. UNCONFIRMED values wait for the CAD developer and the electrical engineer.</div>
   </section>
 
   <!-- Scenarios -->
@@ -137,6 +144,8 @@
       <button id="s-restore">Restore comms link</button>
       <button id="s-leakon">Leak: wet</button>
       <button id="s-leakoff">Leak: dry</button>
+      <button id="s-gpsoff">GPS fix lost</button>
+      <button id="s-gpson">GPS fix back</button>
       <button id="s-restart">Restart simulation</button>
     </div>
     <div class="note">Scenario 1 Start/Stop &bull; 2 Tilt &bull; 3 Cut comms, wait ~1 s, restore, Reset &bull; 4 E-STOP, Reset &bull; 5 Rudder buttons. "Restart simulation" is a demo harness reset, not a safety reset.</div>
@@ -184,6 +193,8 @@ $("s-cut").onclick = () => send("scenario-link_cut");
 $("s-restore").onclick = () => send("scenario-link_restore");
 $("s-leakon").onclick = () => send("scenario-leak_on");
 $("s-leakoff").onclick = () => send("scenario-leak_off");
+$("s-gpsoff").onclick = () => send("scenario-gps_off");
+$("s-gpson").onclick = () => send("scenario-gps_on");
 $("s-restart").onclick = () => { if (confirm("Restart the whole simulation (demo only)?")) send("scenario-restart", {confirm: true}); };
 
 function drawBoat(angle){
@@ -232,30 +243,40 @@ async function refresh(){
   $("warnbar").textContent = s.warnings.join("  |  ");
   ["p-imu", "p-gps", "p-motor"].forEach(id => $(id).classList.toggle("stale", !!stale));
 
-  $("roll").textContent = t ? f(t.imu.roll_deg, "deg") : "-";
-  $("pitch").textContent = t ? f(t.imu.pitch_deg, "deg") : "-";
-  $("yaw").textContent = t ? f(t.imu.yaw_rate_dps, "deg/s") : "-";
-  $("lat").textContent = t ? t.gps.lat.toFixed(6) : "-";
-  $("lon").textContent = t ? t.gps.lon.toFixed(6) : "-";
-  $("gpsvalid").textContent = t ? (t.gps.valid ? "VALID (simulated)" : "NO FIX") : "-";
+  $("roll").textContent = f(s.imu.roll, "deg");
+  $("pitch").textContent = f(s.imu.pitch, "deg");
+  $("yaw").textContent = f(s.imu.yaw_rate, "deg/s");
+  $("lat").textContent = t && t.lat !== null ? t.lat.toFixed(6) : "-";
+  $("lon").textContent = t && t.lon !== null ? t.lon.toFixed(6) : "-";
+  $("gpsvalid").textContent = t ? (t.fix ? "VALID (simulated)" : "NO FIX") : "-";
   drawTrack(s.track);
 
-  $("motorrep").textContent = t ? (t.motor.running ? "RUNNING" : "STOPPED") : "-";
+  $("motorrep").textContent = t ? (t.thr > 0 ? `RUNNING, throttle ${t.thr.toFixed(2)}` : "STOPPED") : "-";
   $("motorcmd").textContent = s.motor_command;
-  $("rcmd").textContent = t ? f(t.rudder.command_deg, "deg", 0) : "-";
-  const ang = t ? t.rudder.angle_deg : 0;
+  $("rcmd").textContent = f(s.rudder_command, "deg", 0);
+  const ang = t && t.rud !== null ? t.rud : 0;
   $("rang").textContent = t ? f(ang, "deg") : "-";
   $("rdir").textContent = !t ? "-" : ang > 2 ? "STARBOARD (bow turns right)" : ang < -2 ? "PORT (bow turns left)" : "CENTRE";
   drawBoat(ang);
-  if (!draggingRudder && t) $("rslider").value = t.rudder.command_deg;
+  const lim = s.config.rudder_limit_deg;
+  $("rslider").min = -lim; $("rslider").max = lim;
+  if (!draggingRudder) $("rslider").value = s.rudder_command;
+  $("cfg").innerHTML = [
+    ["Rudder limit", `+/-${lim} deg`, "rudder_limit_deg"],
+    ["Mission throttle", s.config.throttle_run, "throttle_run"],
+    ["Max throttle", s.config.throttle_max, "throttle_max"],
+    ["IMU mounting", `roll ${s.config.imu_roll_sign > 0 ? "+" : "-"}, pitch ${s.config.imu_pitch_sign > 0 ? "+" : "-"}, yaw ${s.config.imu_yaw_sign > 0 ? "+" : "-"}${s.config.imu_swap_roll_pitch ? ", roll/pitch swapped" : ""}`, "imu_yaw_sign"],
+    ["Rudder centres on stop", s.config.rudder_centre_on_stop ? "yes (proposed)" : "no", "rudder_centre_on_stop"],
+    ["Tilt warning", `${s.config.tilt_warning_deg} deg`, null],
+  ].map(([k, v, key]) => `<div class="row"><span>${k}</span><b>${v} ${key && s.config.unconfirmed.includes(key) ? '<span class="tag future">UNCONFIRMED</span>' : ''}</b></div>`).join("");
 
   const comms = $("comms");
   comms.textContent = s.comms === "OK" ? "OK" : s.comms === "WAITING" ? "waiting for telemetry" : `LOST${s.link_cut ? " (link cut by simulation)" : ""}`;
   comms.className = s.comms === "OK" ? "ok" : "bad";
   const estop = s.fault_causes.includes("E-STOP");
   $("estop-state").textContent = estop ? "ACTIVE (latched)" : "not active"; $("estop-state").className = estop ? "fault" : "";
-  $("cfault").textContent = s.controller_fault || "none"; $("cfault").className = s.controller_fault ? "fault" : "";
-  const leak = t && t.leak;
+  $("cfault").textContent = s.controller_state; $("cfault").className = s.controller_state === "OK" ? "ok" : "fault";
+  const leak = !!(t && t.leak);
   $("leak").textContent = !t ? "-" : leak ? "WET" : "dry (simulated)"; $("leak").className = leak ? "fault" : "";
   $("causes").textContent = s.fault_causes.length ? s.fault_causes.join(", ") : "none";
 

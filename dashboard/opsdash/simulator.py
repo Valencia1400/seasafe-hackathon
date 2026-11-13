@@ -1,40 +1,45 @@
 """SIMULATED control ESP32 (#2). Generates telemetry and enforces its own safety rules.
 
 Nothing here is a real measurement. Every telemetry message carries "src": "SIM".
-The physics is a deliberately crude kinematic toy (constant speed, yaw rate
-proportional to rudder angle) so the demo looks plausible. It is NOT a vessel model.
+The physics is a deliberately crude toy (speed proportional to throttle, yaw rate
+proportional to rudder angle and speed) so the demo looks plausible. It is NOT a
+vessel model and uses no real hardware numbers.
 
-Safety rules modelled (the real firmware must implement its own, independently):
-- Motor is stopped at boot; run commands are ignored until a heartbeat has arrived.
-- No heartbeat for HEARTBEAT_TIMEOUT_S -> latch COMMS_TIMEOUT, motor stopped.
-- estop message -> latch ESTOP. Leak sensor wet -> latch LEAK. Motor stopped in both.
-- While a fault is latched, motor and rudder commands are ignored.
-- reset clears a latch only when its cause is gone (fresh heartbeat for COMMS_TIMEOUT,
-  dry sensor for LEAK). Reset NEVER starts the motor.
-This simulates the intended logic; it is not evidence that real hardware is safe.
+Safety rules modelled (they follow docs/architecture.md; the real firmware must
+implement and prove its own, independently of this file):
+- Motor is stopped at boot; commands are ignored until the first heartbeat.
+- After the first heartbeat, no heartbeat for HEARTBEAT_TIMEOUT_S -> COMMLOST.
+- estop -> ESTOP. Leak sensor wet -> LEAK.
+- In every state except OK the throttle is 0 and commands are ignored
+  (and the rudder is centred, if config.rudder_centre_on_stop, which is only proposed).
+- reset leaves a stop state only when the cause is gone (fresh heartbeat for
+  COMMLOST, dry sensor for LEAK). Reset NEVER starts the motor.
 """
 import math
 import random
 
 from . import protocol as p
+from .config import Config
 
 START_LAT, START_LON = 56.1612, 15.5869   # arbitrary simulated start position
-SPEED_MPS = 1.0                            # simulated speed when the motor runs
-RUDDER_RATE_DPS = 60.0                     # simulated servo slew rate
-YAW_PER_RUDDER_DEG = 0.5                   # (deg/s of yaw) per degree of rudder at full speed
+SPEED_AT_FULL_THROTTLE = 2.0              # simulated m/s at throttle 1.0 (toy value)
+RUDDER_RATE_DPS = 60.0                    # simulated servo slew rate (toy value)
+YAW_PER_RUDDER_DEG = 0.5                  # (deg/s of yaw) per degree of rudder at 1 m/s (toy value)
 TILT_PEAK_DEG, TILT_DURATION_S = 38.0, 4.0
 
 
 class SimulatedESP32:
-    def __init__(self, now, seed=1):
+    def __init__(self, now, config=None, seed=1):
+        self.cfg = config or Config()
         self.boot = self.last_step = now
         self.rng = random.Random(seed)
-        self.fault = None
-        self.motor_run = False
-        self.rudder_cmd = 0
-        self.rudder = 0.0
+        self.state = p.OK
+        self.thr = 0.0
+        self.rud_cmd = 0.0
+        self.rud = 0.0
         self.last_hb = None
         self.leak = False
+        self.fix = True
         self.tilt_start = None
         self.heading = 0.0          # internal only, used to move the simulated position; never reported
         self.yaw_rate = 0.0
@@ -46,10 +51,12 @@ class SimulatedESP32:
     def _hb_fresh(self, now):
         return self.last_hb is not None and now - self.last_hb <= p.HEARTBEAT_TIMEOUT_S
 
-    def _latch(self, fault):
-        if self.fault is None:
-            self.fault = fault
-            self.motor_run = False
+    def _enter(self, state):
+        if self.state == p.OK:
+            self.state = state
+            self.thr = 0.0
+            if self.cfg.rudder_centre_on_stop:
+                self.rud_cmd = 0.0
 
     # -- scenario injection (simulation only) ---------------------------------
     def inject_tilt(self, now):
@@ -58,40 +65,39 @@ class SimulatedESP32:
     def set_leak(self, wet):
         self.leak = wet
 
-    # -- commands from the laptop ---------------------------------------------
+    def set_fix(self, has_fix):
+        self.fix = has_fix
+
+    # -- messages from the laptop ---------------------------------------------
     def handle(self, msg, now):
-        kind = msg.get("type")
+        kind = msg.get("t")
         if kind == "hb":
             self.last_hb = now
-        elif kind == "set_motor":
-            self.motor_run = bool(msg.get("run")) and self.fault is None and self._hb_fresh(now)
-        elif kind == "set_rudder":
-            if self.fault is None:
-                limit = p.RUDDER_LIMIT_DEG
-                self.rudder_cmd = max(-limit, min(limit, float(msg.get("deg", 0))))
+        elif kind == "cmd":
+            if self.state == p.OK and self.last_hb is not None:
+                self.thr = max(0.0, min(self.cfg.throttle_max, float(msg.get("thr", 0))))
+                lim = self.cfg.rudder_limit_deg
+                self.rud_cmd = max(-lim, min(lim, float(msg.get("rud", 0))))
         elif kind == "estop":
-            self._latch(p.FAULT_ESTOP)
+            self._enter(p.ESTOP)
         elif kind == "reset":
-            cause_gone = {p.FAULT_ESTOP: True,
-                          p.FAULT_COMMS: self._hb_fresh(now),
-                          p.FAULT_LEAK: not self.leak}.get(self.fault, True)
-            if self.fault is not None and cause_gone:
-                self.fault = None
-            self.motor_run = False
+            cause_gone = {p.ESTOP: True, p.COMMLOST: self._hb_fresh(now), p.LEAK: not self.leak}.get(self.state, True)
+            if self.state != p.OK and cause_gone:
+                self.state = p.OK
+            self.thr = 0.0
 
     # -- periodic work: safety checks, dynamics, telemetry -------------------
     def step(self, now):
         dt = max(0.0, now - self.last_step)
         self.last_step = now
         if self.leak:
-            self._latch(p.FAULT_LEAK)
+            self._enter(p.LEAK)
         if self.last_hb is not None and not self._hb_fresh(now):
-            self._latch(p.FAULT_COMMS)
-        # rudder servo slews toward its command
-        delta = self.rudder_cmd - self.rudder
-        self.rudder += max(-RUDDER_RATE_DPS * dt, min(RUDDER_RATE_DPS * dt, delta))
-        speed = SPEED_MPS if self.motor_run else 0.0
-        self.yaw_rate = YAW_PER_RUDDER_DEG * self.rudder * speed
+            self._enter(p.COMMLOST)
+        delta = self.rud_cmd - self.rud
+        self.rud += max(-RUDDER_RATE_DPS * dt, min(RUDDER_RATE_DPS * dt, delta))
+        speed = SPEED_AT_FULL_THROTTLE * self.thr
+        self.yaw_rate = YAW_PER_RUDDER_DEG * self.rud * speed
         self.heading += self.yaw_rate * dt
         h = math.radians(self.heading)
         self.lat += speed * math.cos(h) * dt / 111320.0
@@ -117,14 +123,14 @@ class SimulatedESP32:
         tilt = self._tilt(now)
         self.seq += 1
         return {
-            "type": "telemetry", "src": "SIM", "seq": self.seq, "t_ms": int(t * 1000),
-            "imu": {"roll_deg": round(tilt + 1.5 * math.sin(t * 0.9) + noise(0.3), 1),
-                    "pitch_deg": round(0.4 * tilt + 0.8 * math.sin(t * 0.6 + 1.0) + noise(0.3), 1),
-                    "yaw_rate_dps": round(self.yaw_rate + noise(0.2), 1)},
-            "gps": {"valid": True, "lat": round(self.lat, 6), "lon": round(self.lon, 6)},
-            "motor": {"running": self.motor_run},
-            "rudder": {"command_deg": self.rudder_cmd, "angle_deg": round(self.rudder, 1)},
-            "leak": self.leak,
-            "fault": self.fault,
-            "comms": "OK" if self._hb_fresh(now) else "TIMEOUT",
+            "t": "tel", "src": "SIM", "seq": self.seq, "ms": int(t * 1000),
+            "roll": round(tilt + 1.5 * math.sin(t * 0.9) + noise(0.3), 1),
+            "pitch": round(0.4 * tilt + 0.8 * math.sin(t * 0.6 + 1.0) + noise(0.3), 1),
+            "gz": round(self.yaw_rate + noise(0.2), 1),
+            "lat": round(self.lat, 6) if self.fix else None,
+            "lon": round(self.lon, 6) if self.fix else None,
+            "fix": 1 if self.fix else 0,
+            "thr": round(self.thr, 2), "rud": round(self.rud, 1),
+            "leak": 1 if self.leak else 0,
+            "state": self.state,
         }
