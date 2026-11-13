@@ -65,7 +65,7 @@ reach it, e.g. the viewer and the dashboard on two different laptops. All respon
 ## 4. Detection message (`/detections`)
 
 ```json
-{"t":"det","seq":812,"ts":1763037000.123,"src":"esp32","model":"yolo26n.pt","cam":"OK",
+{"t":"det","seq":812,"ts":1763037000.123,"src":"esp32","model":"yoloe-26s-seg.pt","cam":"OK",
  "w":640,"h":480,"fps":9.8,"infer_ms":38.2,
  "dets":[{"cls":"boat","conf":0.82,"box":[120,200,260,300]},
          {"cls":"person","conf":0.57,"box":[400,180,430,260]}]}
@@ -81,23 +81,28 @@ reach it, e.g. the viewer and the dashboard on two different laptops. All respon
 | `w`, `h` | Frame size in pixels |
 | `fps` | Detections per second actually achieved |
 | `infer_ms` | Time YOLO took for this frame |
-| `dets[].cls` | One of `person`, `boat`, `bird`, `surfboard`, `bottle` (see below) |
+| `dets[].cls` | One of the words the viewer looks for, e.g. `boat`, `buoy`, `floating debris` (see below) |
 | `dets[].conf` | Confidence 0-1 (only >= 0.35 is sent; change with `--conf`) |
 | `dets[].box` | `[x1, y1, x2, y2]` in pixels of the `w` x `h` frame, origin top-left. To draw over a displayed image, multiply by `img.clientWidth / w` |
 
 ### Classes and what they mean on the water
 
+The default model is **YOLOE** (`yoloe-26s-seg.pt`): it finds whatever a list of words describes, with no training.
+`cls` is then exactly one of those words. Default list (`--prompts` in `viewer.py`):
+
 | `cls` | Shown as | Notes |
 |---|---|---|
 | `person` | Person in water / swimmer | Highest priority alert |
-| `boat` | Vessel | Also catches most kayaks and canoes |
+| `boat` | Vessel | |
+| `kayak` | Kayak / canoe | Small craft, hard to see on radar |
+| `buoy` | Buoy | Navigation hazard / marker |
+| `floating debris` | Debris | Zero-shot: least reliable class, expect misses and false alarms |
+| `bottle` | Floating plastic (bottle) | |
 | `bird` | Bird | Mostly useful to explain false alarms |
-| `surfboard` | Board / paddleboard | |
-| `bottle` | Floating debris (bottle) | Stand-in for plastic waste; COCO has no debris class |
 
-Buoys, general debris and docks are **not** detected yet; that needs a fine-tuned model (FloW, SeaDronesSee,
-LaRS datasets). A fine-tuned model is a drop-in `--model my_model.pt`; add its new class names to
-`WATER_CLASSES` in `viewer.py` so they are not filtered out.
+**Handle any `cls` string**: the word list can change (`--prompts "boat,ship,life jacket"`), and `cls` may contain
+spaces. With `--model yolo26n.pt` the old COCO classes come back: `person`, `boat`, `bird`, `surfboard`, `bottle`.
+For better accuracy on debris and buoys the next step is still a model fine-tuned on FloW / SeaDronesSee.
 
 ## 5. Minimal dashboard code
 

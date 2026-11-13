@@ -17,8 +17,10 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import cv2
 import numpy as np
 
-# COCO classes that make sense on water (person = swimmer / person overboard, bottle = floating plastic).
-# shortcut: COCO has no buoy, debris or dock class; fine-tune on FloW / SeaDronesSee / LaRS for those.
+# Default model is YOLOE: it detects whatever these words describe, with no training (open vocabulary).
+# shortcut: zero-shot, so rarer things (debris, buoys) are less reliable than a model fine-tuned on FloW / SeaDronesSee.
+WATER_PROMPTS = "boat,kayak,person,buoy,floating debris,bottle,bird"
+# With a plain COCO model (--model yolo26n.pt) only these classes are kept (bottle = floating plastic stand-in).
 WATER_CLASSES = {"person", "boat", "bird", "surfboard", "bottle"}
 STALE_S = 2.0  # no camera frame for this long -> cam "DOWN"
 
@@ -135,8 +137,10 @@ def main():
     ap = argparse.ArgumentParser(description="SeaSafe camera viewer + object detection")
     ap.add_argument("--source", default="http://seasafe-cam.local:81/stream",
                     help="ESP32 stream URL, webcam index (0) or video file")
-    ap.add_argument("--model", default="yolo26n.pt", help="YOLO weights (downloaded on first run)")
-    ap.add_argument("--conf", type=float, default=0.35, help="minimum confidence")
+    ap.add_argument("--model", default="yoloe-26s-seg.pt",
+                    help="yoloe-* = detect the --prompts words; any other YOLO (e.g. yolo26n.pt) = COCO classes")
+    ap.add_argument("--prompts", default=WATER_PROMPTS, help="comma-separated things to look for (YOLOE models only)")
+    ap.add_argument("--conf", type=float, default=0.3, help="minimum confidence")
     ap.add_argument("--imgsz", type=int, default=640, help="inference size; 320 is ~4x faster on a slow computer")
     ap.add_argument("--host", default="127.0.0.1", help="0.0.0.0 to serve other machines on the network")
     ap.add_argument("--port", type=int, default=8001)
@@ -151,9 +155,16 @@ def main():
     threading.Thread(target=server.serve_forever, daemon=True).start()
     print(f"Reading {args.source}  ->  open http://{args.host}:{args.port}/")
 
-    from ultralytics import YOLO  # slow import; after the server is up so the page loads meanwhile
-    model = YOLO(args.model)
-    wanted = [i for i, name in model.names.items() if name in WATER_CLASSES]
+    from ultralytics import YOLO, YOLOE  # slow import; after the server is up so the page loads meanwhile
+    if args.model.startswith("yoloe"):
+        model = YOLOE(args.model)
+        names = [w.strip() for w in args.prompts.split(",") if w.strip()]
+        model.set_classes(names, model.get_text_pe(names))
+        wanted = None  # every prompted word is wanted
+    else:
+        model = YOLO(args.model)
+        wanted = [i for i, name in model.names.items() if name in WATER_CLASSES]
+    print(f"Looking for: {', '.join(model.names[i] for i in (wanted or model.names))}", flush=True)
 
     seq, fps, last, last_print = 0, 0.0, time.time(), 0.0
     while True:
