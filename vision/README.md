@@ -6,15 +6,18 @@ the annotated video and detections on `http://127.0.0.1:8001`. **Dashboard team:
 
 ## 1. Flash the camera (once)
 
-1. Copy `electronics/firmware/seasafe_cam/secrets.example.h` to `secrets.h` in the same folder and fill in a
-   **2.4 GHz** Wi-Fi (a phone hotspot is fine). `secrets.h` is git-ignored. Skip this and the board makes its own
-   Wi-Fi "SeaSafe-Cam" (password `seasafe123`, camera at `http://192.168.4.1`).
+1. Wi-Fi: the firmware joins the team hotspot **`Armin – iPhone`** (password `password`) by default. Turn on
+   *Maximize Compatibility* on the iPhone (2.4 GHz only). Note the iPhone names it with a long dash (–), not `-`.
+   Another network: copy `secrets.example.h` to `secrets.h` (git-ignored) and fill it in. If the network is not
+   found within 15 s, the board prints the networks it can see and makes its own Wi-Fi "SeaSafe-Cam"
+   (password `seasafe123`, camera at `http://192.168.4.1`).
 2. Arduino IDE: board **XIAO_ESP32S3**, Tools > PSRAM: **OPI PSRAM**, open `seasafe_cam.ino`, Upload.
    Or from a terminal:
    ```bash
    arduino-cli compile --upload -p /dev/cu.usbmodemXXXX --fqbn esp32:esp32:XIAO_ESP32S3:PSRAM=opi electronics/firmware/seasafe_cam
    ```
-3. Serial Monitor (115200) prints the camera address every 5 s. Open `http://<that address>/` on a phone to see
+3. Serial Monitor (115200) prints the camera address every 5 s (on the iPhone hotspot it was `172.20.10.2`).
+   Close the Serial Monitor before uploading again: it blocks the port. Open `http://<that address>/` on a phone to see
    the live picture.
 
 ## 2. Run the detector
@@ -25,11 +28,12 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
 ```
 Then:
 ```bash
-.venv/bin/python viewer.py                                        # camera at seasafe-cam.local
+.venv/bin/python viewer.py --source http://172.20.10.2:81/stream  # iPhone hotspot: use the IP from the Serial Monitor
+.venv/bin/python viewer.py                                        # normal router: camera found as seasafe-cam.local
 .venv/bin/python viewer.py --source http://192.168.4.1:81/stream  # camera in its own-network mode
 .venv/bin/python viewer.py --source 0                             # laptop webcam, no boat needed
 ```
-Open http://127.0.0.1:8001/. The first run downloads the YOLO weights (`yolo11n.pt`, 5 MB), so do it once with
+Open http://127.0.0.1:8001/. The first run downloads the YOLO weights (`yolo26n.pt`, 5 MB), so do it once with
 internet before the demo. On a slow laptop add `--imgsz 320` for about 4x the speed.
 
 Tests (no camera or model needed): `.venv/bin/python -m unittest test_viewer -v`

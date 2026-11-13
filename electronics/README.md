@@ -20,7 +20,7 @@ Protocol and safety rules: [docs/architecture.md](../docs/architecture.md). Requ
 - Then connect to the dashboard: `python run.py --port COMx` in `dashboard/`.
 
 ## Camera firmware: `firmware/seasafe_cam/seasafe_cam.ino`
-Seeed XIAO ESP32S3 Sense: MJPEG stream + JSON status over Wi-Fi, for the detector in `vision/`. Board `XIAO_ESP32S3`, PSRAM `OPI PSRAM`. Wi-Fi goes in `secrets.h` (copy `secrets.example.h`, git-ignored). How to flash and run: [vision/README.md](../vision/README.md); endpoints: [vision/INTEGRATION.md](../vision/INTEGRATION.md).
+Seeed XIAO ESP32S3 Sense: MJPEG stream + JSON status over Wi-Fi, for the detector in `vision/`. Board `XIAO_ESP32S3`, PSRAM `OPI PSRAM`. Joins the team hotspot `Armin – iPhone` by default; other networks go in `secrets.h` (copy `secrets.example.h`, git-ignored). How to flash and run: [vision/README.md](../vision/README.md); endpoints: [vision/INTEGRATION.md](../vision/INTEGRATION.md).
 
 ## Bench motor output
 LEDs (with resistors) or the motor driver with the DC motor but **no propeller**. Show the output value in telemetry (`l`, `r` today) so stops can be timed from the log.
@@ -55,4 +55,4 @@ Confirmed: **two ESP32s** - ESP32 #1 camera (video to the laptop over Wi-Fi), ES
 ## Test log (what was actually run)
 | Date/time | What | Board | Result | Photo/video |
 |---|---|---|---|---|
-| | | | | |
+| 13 Nov | Camera firmware `seasafe_cam`: flash, join iPhone hotspot, stream to `vision/viewer.py` | XIAO ESP32S3 Sense (OV3660) | Works: 26.7 fps from the board, 20-26 fps with YOLO26n on a MacBook Air, person detected | Annotated frame in the project chat |

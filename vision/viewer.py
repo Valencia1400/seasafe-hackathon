@@ -73,7 +73,7 @@ def read_camera(source, cam):
                     time.sleep(delay)
                 cap.release()
         except Exception as exc:  # noqa: BLE001 - a dead camera must not kill the viewer
-            print(f"camera: {exc}")
+            print(f"camera: {exc}", flush=True)
         time.sleep(2)
 
 
@@ -135,7 +135,7 @@ def main():
     ap = argparse.ArgumentParser(description="SeaSafe camera viewer + object detection")
     ap.add_argument("--source", default="http://seasafe-cam.local:81/stream",
                     help="ESP32 stream URL, webcam index (0) or video file")
-    ap.add_argument("--model", default="yolo11n.pt", help="YOLO weights (downloaded on first run)")
+    ap.add_argument("--model", default="yolo26n.pt", help="YOLO weights (downloaded on first run)")
     ap.add_argument("--conf", type=float, default=0.35, help="minimum confidence")
     ap.add_argument("--imgsz", type=int, default=640, help="inference size; 320 is ~4x faster on a slow computer")
     ap.add_argument("--host", default="127.0.0.1", help="0.0.0.0 to serve other machines on the network")
@@ -176,7 +176,7 @@ def main():
         out.put((jpg.tobytes(), msg))
         if now - last_print > 1:
             last_print = now
-            print(f"{fps:4.1f} fps  {infer_ms:5.1f} ms  " + (", ".join(f"{d['cls']} {d['conf']}" for d in dets) or "-"))
+            print(f"{fps:4.1f} fps  {infer_ms:5.1f} ms  " + (", ".join(f"{d['cls']} {d['conf']}" for d in dets) or "-"), flush=True)
 
 
 if __name__ == "__main__":

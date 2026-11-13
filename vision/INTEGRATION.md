@@ -19,7 +19,7 @@ The ESP32 `/status` endpoint is a separate server and can be polled by anyone.
 
 | Wi-Fi mode | When | Camera address |
 |---|---|---|
-| Station (`STA`) | `secrets.h` has a reachable 2.4 GHz network | `http://seasafe-cam.local` (mDNS: macOS, iOS, Linux with avahi), or the IP the board prints on the Serial Monitor every 5 s, or the hotspot's client list |
+| Station (`STA`) | the team hotspot `Armin – iPhone` (or the network in `secrets.h`) is reachable. The viewer machine must be on the same network | The IP the board prints on the Serial Monitor every 5 s (was `172.20.10.2` on the iPhone hotspot). `http://seasafe-cam.local` (mDNS) works on normal routers but **not** on the iPhone hotspot |
 | Access point (`AP`) | no `secrets.h`, or the network was not found within 15 s | join Wi-Fi **SeaSafe-Cam** (password `seasafe123`), camera at `http://192.168.4.1`. Your laptop has no internet while joined |
 
 ## 2. ESP32 endpoints
@@ -65,7 +65,7 @@ reach it, e.g. the viewer and the dashboard on two different laptops. All respon
 ## 4. Detection message (`/detections`)
 
 ```json
-{"t":"det","seq":812,"ts":1763037000.123,"src":"esp32","model":"yolo11n.pt","cam":"OK",
+{"t":"det","seq":812,"ts":1763037000.123,"src":"esp32","model":"yolo26n.pt","cam":"OK",
  "w":640,"h":480,"fps":9.8,"infer_ms":38.2,
  "dets":[{"cls":"boat","conf":0.82,"box":[120,200,260,300]},
          {"cls":"person","conf":0.57,"box":[400,180,430,260]}]}
@@ -130,4 +130,4 @@ Fill in after each real test (board, distance, network). Until then these are un
 
 | Date | Setup | ESP32 fps | Viewer fps | infer_ms | Notes |
 |---|---|---|---|---|---|
-| | | | | | |
+| 13 Nov | MacBook Air + XIAO on the iPhone hotspot, board ~1 m from the phone (RSSI -30 dBm), VGA 640x480, quality 12 | 26.7 | 20-26 | 21-27 | YOLO26n on CPU; person detected at 0.45-0.83 |
