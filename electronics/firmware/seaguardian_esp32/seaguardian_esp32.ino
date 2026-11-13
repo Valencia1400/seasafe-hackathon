@@ -179,7 +179,7 @@ bool baroRead() {
   return true;
 }
 
-// ---------------- messages from the Pi ----------------
+// ---------------- messages from the laptop ----------------
 float numberAfter(const char *line, const char *key, float fallback) {
   const char *k = strstr(line, key);
   return k ? strtof(k + strlen(key), nullptr) : fallback;
@@ -261,7 +261,7 @@ void loop() {
   uint32_t now = millis();
   readSerial();
 
-  // Safety checks every loop, independent of the Pi.
+  // Safety checks every loop, independent of the laptop.
   if (state == ST_OK) {
     if (digitalRead(PIN_ESTOP_BTN) == LOW) enterState(ST_ESTOP);
     else if (leakWet()) enterState(ST_LEAK);

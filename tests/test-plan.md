@@ -24,6 +24,10 @@ Use the dashboard log file: it timestamps each message and the ESP32 `ms` field 
 | T-R10 | Run the full demo sequence (README) from a fresh start | Completes without a restart | 5 |
 | T-R11 | Pick one AI-generated design or code part that failed review or a test; fix; re-run the same test | Before/after documented | 1 |
 | T-R12 | (If printed) remove and replace the sensor-bay module, stopwatch | < 60 s | 5 |
+| T-R13 | GPS outdoors or by a window: wait for a fix; compare shown lat/lon with a phone map; indoors check "no fix" is shown | Position shown and plausible; no fake value without fix | 3 |
+| T-R14 | Power the camera ESP32; open the dashboard/stream on the laptop; wave a hand in front of the camera | Live image visible and moving | 3 |
+| T-R15 | Bench: command rudder left, centre, right; then trigger E-STOP | Servo follows each command; centres on the stop | 5 |
+| T-R16 | (Stretch) Rotate the IMU by hand; watch the rudder command | Correction opposes the turn and grows with yaw rate | 3 |
 
 ## Verification checklist (Person 4)
 - [ ] Every test above has a row in test-results.md

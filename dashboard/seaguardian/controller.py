@@ -1,4 +1,4 @@
-"""Pi mission controller: heartbeat, simulated supervised inspection mission, faults and event log.
+"""Laptop mission controller: heartbeat, simulated supervised inspection mission, faults and event log.
 
 All decisions happen in `tick(now)` and `on_message(msg, now)`, which take the
 time as an argument, so the logic can be unit-tested without threads or hardware.
@@ -16,7 +16,7 @@ MISSION = [
 ]
 # Simulated route (quay -> inspection point), in metres, for the map view
 ROUTE = [(0, 0), (20, 6), (38, 22), (52, 30)]
-LINK_TIMEOUT_S = 1.0  # Pi side: no telemetry for this long -> link lost
+LINK_TIMEOUT_S = 1.0  # laptop side: no telemetry for this long -> link lost
 
 
 class Controller:
@@ -133,9 +133,9 @@ class Controller:
             return
         note = ""
         if evt == p.COMMLOST and self.cut_at is not None:
-            note = f" - {int((now - self.cut_at) * 1000)} ms after the link was cut (Pi clock)"
+            note = f" - {int((now - self.cut_at) * 1000)} ms after the link was cut (laptop clock)"
         if evt == p.ESTOP and self.estop_at is not None:
-            note = f" - confirmed {int((now - self.estop_at) * 1000)} ms after the E-STOP press (Pi clock)"
+            note = f" - confirmed {int((now - self.estop_at) * 1000)} ms after the E-STOP press (laptop clock)"
         self.event(f"ESP32 safety stop: {evt}, motors 0{note}", "fault")
         self.abort_mission(now, f"ESP32 reported {evt}")
 

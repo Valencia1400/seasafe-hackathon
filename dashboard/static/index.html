@@ -102,7 +102,7 @@ function drawMap(s){
 }
 
 async function refresh(){
-  let s; try{ s = await (await fetch("/api/state")).json(); }catch(e){ $("banner").style.display="block"; $("banner").textContent="Dashboard cannot reach the Pi software"; return; }
+  let s; try{ s = await (await fetch("/api/state")).json(); }catch(e){ $("banner").style.display="block"; $("banner").textContent="Dashboard cannot reach the mission software"; return; }
   const t = s.telemetry || {}, sim = s.simulated || s.mode === "SIMULATOR";
   $("mode").textContent = s.mode; $("mode").className = "tag " + (s.mode === "SIMULATOR" ? "sim" : "hw");
   $("sensortag").style.display = sim ? "" : "none";

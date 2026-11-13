@@ -10,7 +10,7 @@ After storms, accidents or suspected damage, harbour operators may need to inspe
 ## The solution
 A small, supervised unmanned surface vehicle (two-hull catamaran) that runs an initial inspection mission, collects sensor data and reports problems to an operator. Its point of difference is not "a small autonomous boat" (Saab already builds those), but:
 1. **Interchangeable sensor bay** - payloads swap per mission.
-2. **Split control:** high-level mission logic on a Raspberry Pi, low-level **safety control on an ESP32** that stops the motors on its own if anything goes wrong.
+2. **Split control:** the operator dashboard and simulated mission run on a **laptop**; a **control ESP32** owns sensors, propulsion, rudder steering and **safety**, and stops the motor on its own if anything goes wrong. A separate **camera ESP32** streams video to the laptop.
 3. **Transparent AI-assisted engineering** - every design step, mistake and fix is logged.
 
 Positioning: *a modular, low-cost experimental platform for developing and testing safe maritime inspection capabilities.* (Do not claim lower cost than existing systems without a defensible comparison.)
@@ -20,19 +20,19 @@ Positioning: *a modular, low-cost experimental platform for developing and testi
 ## The five things we build this weekend
 | # | Feature | Owner | Evidence |
 |---|---|---|---|
-| 1 | Complete CAD assembly: catamaran, sealed electronics bay, propulsion mounts, interchangeable sensor bay | P1 | Editable CAD, exploded view, component-fit check |
-| 2 | Raspberry Pi <-> ESP32 communication | P2 + P3 | Live messages between the boards (or clearly labelled simulation) |
-| 3 | Sensor monitoring: IMU (orientation), pressure sensor (atmospheric pressure), leak sensor | P2 | Real readings, correctly labelled |
-| 4 | Safety-first motor control: emergency stop, comms-loss timeout, operator override | P2 | Injected fault -> motor output commanded to zero, measured |
+| 1 | Complete CAD assembly: catamaran, sealed electronics bay, one propeller mount (DC motor), rear rudder with servo mount, camera position, interchangeable sensor bay | P1 | Editable CAD, exploded view, component-fit check |
+| 2 | Laptop <-> control ESP32 communication (+ camera ESP32 video stream) | P2 + P3 | Live messages between laptop and board (or clearly labelled simulation) |
+| 3 | Sensor monitoring: IMU (roll/pitch, yaw rate), GPS position, pressure sensor (atmospheric pressure), leak sensor | P2 | Real readings, correctly labelled |
+| 4 | Safety-first control of one DC propulsion motor + rudder servo: emergency stop, comms-loss timeout, operator override | P2 | Injected fault -> motor output commanded to zero, measured |
 | 5 | Inspection mission dashboard: start mission, live sensor data, event log, faults | P3 | Repeatable live demo |
 
-**Not this weekend:** obstacle avoidance, GPS waypoint navigation, real autonomous sailing, water trials.
+**Not this weekend:** obstacle avoidance, GPS waypoint navigation, real autonomous sailing, water trials. **Optional stretch:** a P (later PID) rudder controller on IMU yaw rate - only after manual rudder control works.
 
 ## Team
 | Person | Role | Main jury criteria |
 |---|---|---|
 | 1 | CAD developer / technical lead | Feasibility, technical quality |
-| 2 | Electrical engineer: Pi/ESP32 architecture, sensors, motor safety | Technical quality, feasibility |
+| 2 | Electrical engineer: two-ESP32 architecture (camera + control), sensors, motor/servo safety | Technical quality, feasibility |
 | 3 | Product lead: mission definition, dashboard, integration, mentor feedback | Problem, user value, partner relevance |
 | 4 | Verification: test matrix, repeated tests, evidence | Technical quality, feasibility |
 | 5 | User research, differentiation, AI log, presentation | Problem, user value, innovation, presentation |
@@ -42,9 +42,9 @@ Positioning: *a modular, low-cost experimental platform for developing and testi
 ## Repository map
 ```
 cad/                    CAD source (models/) and exports (exports/)                     - P1
-electronics/firmware/   ESP32 firmware (sensors + safety + motor output)                 - P2
+electronics/firmware/   Control ESP32 firmware (sensors + safety + motor output)         - P2
 electronics/wiring/     Wiring diagram, pin table, photos                                - P2
-dashboard/              Raspberry Pi mission software + operator dashboard              - P3
+dashboard/              Laptop mission software + operator dashboard                    - P3
 tests/                  Test plan and results (the evidence)                             - P4
 docs/                   Start here, requirements, architecture + protocol, components,
                         AI log, decisions, risks, research, workflow                     - P3/P5
@@ -53,10 +53,10 @@ presentation/           Pitch outline, demo script, judge Q&A                   
 
 ## Demo sequence (60-90 s)
 1. Operator starts an inspection mission on the dashboard (simulated vessel departs).
-2. ESP32 streams IMU and pressure readings to the Pi; they appear live.
+2. The control ESP32 streams IMU and pressure readings (and GPS position, when wired) to the laptop; they appear live. Camera video is shown when the camera ESP32 is connected.
 3. Abnormal condition: we tilt the real IMU (or inject a labelled leak signal) -> warning to the operator.
-4. Safety response: we cut the Pi <-> ESP32 link -> after the timeout the ESP32 commands motor output to zero.
-5. CAD: show where electronics, propulsion and the swappable sensor bay sit.
+4. Safety response: we cut the laptop <-> control ESP32 link -> after the timeout the ESP32 commands motor output to zero.
+5. CAD: show where the two ESP32s, the propeller motor, the rear rudder servo, the camera and the swappable sensor bay sit.
 
 A dry bench motor stop demonstrates our **control logic**, not complete real-world vessel safety.
 
@@ -66,7 +66,7 @@ A dry bench motor stop demonstrates our **control logic**, not complete real-wor
 | Problem validated with a mentor | Not started | Question in [research.md](docs/research.md) |
 | Requirements v1 | Drafted | [requirements.md](docs/requirements.md) |
 | CAD assembly v1 | Not started | |
-| Pi <-> ESP32 link | Not started | Protocol in [architecture.md](docs/architecture.md) |
+| Laptop <-> control ESP32 link | Not started | Protocol in [architecture.md](docs/architecture.md) |
 | Sensors | Not started | |
 | Safety stop | Not started | |
 | Dashboard | Not started | |

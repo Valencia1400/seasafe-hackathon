@@ -1,4 +1,6 @@
-# Mission software + dashboard (Raspberry Pi) - Owner: Person 3
+# Mission software + dashboard (laptop) - Owner: Person 3
+
+> Hardware update (D-007): runs on the **laptop**; there is no Raspberry Pi. It talks to the **control ESP32** (#2). The camera ESP32 (#1) video and GPS coordinates are planned, not implemented yet. Motor output is still shown as L/R until the protocol change in docs/architecture.md is agreed.
 
 Protocol: [docs/architecture.md](../docs/architecture.md). Requirements R4, R5, R6, R10.
 
@@ -31,11 +33,11 @@ With the real ESP32 (needs `pip install -r requirements.txt` once):
 ```bash
 python run.py --port COM5
 ```
-On the Raspberry Pi the port is usually `/dev/ttyUSB0` or `/dev/ttyACM0`. Add `--host 0.0.0.0` to open the dashboard from a laptop on the same network.
+On Linux/macOS the port is usually `/dev/ttyUSB0`, `/dev/ttyACM0` or `/dev/cu.usbserial-*`. Add `--host 0.0.0.0` to open the dashboard from a laptop on the same network.
 
 Every message and event is written to `logs/session-<date>-<time>.jsonl` (ignored by git). Copy the log of a test run to `tests/evidence/` when it is evidence.
 
-Unit tests (simulator safety rules + Pi logic, no hardware):
+Unit tests (simulator safety rules + laptop-side logic, no hardware):
 ```bash
 python -m unittest discover -s tests -v
 ```
@@ -54,7 +56,7 @@ python -m unittest discover -s tests -v
 ## What has been verified (Fri 13 Nov)
 - 14 unit tests pass (simulator safety rules, mission, e-stop, comms loss, leak, tilt, bad input).
 - Simulator run through the API: mission started, motors 0.4/0.4, tilt warning at 38 deg, link cut -> ESP32 COMMLOST and motors 0 after 842 ms (Pi clock), reset back to OK.
-- **Not verified:** the real ESP32 over serial, the dashboard on the Raspberry Pi, the page's look on the stage screen.
+- **Not verified:** the real ESP32 over serial, the page's look on the stage screen. **Not implemented:** camera stream, GPS coordinates, rudder servo command.
 
 ## Note on the comms-loss timing
 The 1.0 s timeout counts from the **last heartbeat**, which is sent every 200 ms. So the stop comes 0.8-1.05 s after the link is cut, not exactly 1.0 s. (Found by our own unit test - a good "problem we hit" for the AI log.)

@@ -16,9 +16,10 @@ You own [research.md](research.md), [ai-process.md](ai-process.md) (with Person 
 ```
 I am a beginner with almost no tech experience, on a 5-person hackathon team (Saab x Marine Technology Center, "Prompt-to-Product").
 I am in the software group, and I own research, the user story, the AI log and the pitch.
-Our project: SeaGuardian, a small unmanned boat concept for harbour inspection after storms or incidents. A Raspberry Pi (small computer)
-runs a simulated inspection mission and a dashboard on a laptop; an ESP32 (small microcontroller) reads sensors (tilt, air pressure, water leak)
-and stops the motors by itself if something goes wrong (lost connection, emergency stop, leak). The mission is simulated; nothing goes in water.
+Our project: SeaGuardian, a small unmanned boat concept for harbour inspection after storms or incidents. A laptop runs a simulated
+inspection mission and a dashboard; ESP32 #1 (small microcontroller) streams camera video; ESP32 #2 reads sensors (tilt, GPS position,
+air pressure, water leak), drives one propeller motor and a rudder servo, and stops the motor by itself if something goes wrong
+(lost connection, emergency stop, leak). There is no Raspberry Pi. The mission is simulated; nothing goes in water.
 Please explain in simple words, avoid jargon (or explain it), use short steps, and tell me when you are unsure. Never invent facts or numbers.
 ```
 
@@ -116,11 +117,13 @@ In `docs/ai-log/<your-name>.md` (in the GitHub browser), add:
 ## Words you will hear
 | Word | Simple meaning |
 |---|---|
-| Raspberry Pi | Small computer that runs the mission program and dashboard |
+| Laptop | Runs the mission program and the dashboard (there is no Raspberry Pi) |
+| GPS | Tells where the boat is (position) |
+| Rudder + servo | The flap at the back that steers, and the small motor that turns it |
 | ESP32 | Tiny computer chip that reads sensors and controls motors |
 | Dashboard | The web page on the laptop where the operator sees and controls the mission |
 | Simulator / SIMULATED | Pretend data from our software, always labelled on screen |
-| Heartbeat | "Still here" message the Pi sends 5 times a second; if it stops, the ESP32 stops the motors |
+| Heartbeat | "Still here" message the laptop sends 5 times a second; if it stops, the ESP32 stops the motors |
 | E-stop | Emergency stop: motors stop until someone presses Reset |
 | Telemetry | Stream of sensor readings sent to the dashboard |
 | USV | Unmanned surface vehicle - a boat without a crew on board |

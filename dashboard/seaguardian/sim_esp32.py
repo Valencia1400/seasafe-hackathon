@@ -1,6 +1,6 @@
 """A SIMULATED ESP32 that follows the same safety rules as the real firmware.
 
-Used to build and test the Pi software without hardware. Every telemetry
+Used to build and test the laptop software without hardware. Every telemetry
 message carries "src": "SIM" so the dashboard can label it as simulated.
 
 Safety rules (must match electronics/firmware and docs/architecture.md):
@@ -27,7 +27,7 @@ class SimulatedESP32:
         self.leak = False        # fault injection: leak sensor wet
         self.tilt_deg = 0.0      # fault injection: forced roll angle
         self.seq = 0
-        self.outbox = []         # messages for the Pi, drained by the transport
+        self.outbox = []         # messages for the laptop, drained by the transport
         self._rng = random.Random(seed)
 
     # -- helpers ----------------------------------------------------------
@@ -44,7 +44,7 @@ class SimulatedESP32:
                 self.left = self.right = 0.0
             self.outbox.append({"t": "evt", "ms": self._ms(now), "evt": state, "src": "SIM"})
 
-    # -- input from the Pi ------------------------------------------------
+    # -- input from the laptop ------------------------------------------------
     def handle(self, msg: dict, now: float):
         kind = msg.get("t")
         if kind == "hb":

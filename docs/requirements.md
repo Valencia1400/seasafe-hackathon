@@ -34,9 +34,9 @@ Priority: **M** must, **S** should, **C** could. Every target is checked by the 
 | ID | Requirement | Measurable target | Pri | Owner | Status |
 |---|---|---|---|---|---|
 | R1 | Problem validated | A Saab/MTC mentor's answer to our problem question recorded word for word | M | P3 | Not tested |
-| R2 | CAD assembly | Editable parametric model: 2 hulls, sealed electronics bay, 2 propulsion mounts, swappable sensor bay; exploded view exported | M | P1 | Not tested |
+| R2 | CAD assembly | Editable parametric model: 2 hulls, sealed electronics bay, 1 propeller mount (DC motor), rear rudder with servo mount, camera mount, swappable sensor bay; exploded view exported | M | P1 | Not tested |
 | R3 | Components fit | Every listed component fits its space in CAD with >= 3 mm clearance (provisional) | M | P1/P2 | Not tested |
-| R4 | Pi <-> ESP32 link | Telemetry at >= 5 Hz; >= 99% of messages received over a 5-minute run (sequence-number check) | M | P2/P3 | Not tested |
+| R4 | Laptop <-> control ESP32 link | Telemetry at >= 5 Hz; >= 99% of messages received over a 5-minute run (sequence-number check) | M | P2/P3 | Not tested |
 | R5 | Sensor readings | IMU roll/pitch and atmospheric pressure shown on the dashboard, correctly labelled with units, updating at least once per second | M | P2/P3 | Not tested |
 | R6 | Tilt warning | Tilting the IMU beyond 30 deg raises a TILT warning on the dashboard within 1 s, 5 of 5 trials | M | P2/P3 | Not tested |
 | R7 | Leak fault | Leak input (sensor or labelled test input) raises a LEAK fault and stops motors within 1 s, 5 of 5 | S | P2 | Not tested |
@@ -45,12 +45,17 @@ Priority: **M** must, **S** should, **C** could. Every target is checked by the 
 | R10 | Mission dashboard | Start a simulated inspection mission, show live readings, event log and faults; full demo sequence runs 5 of 5 without a restart | M | P3 | Not tested |
 | R11 | Design iteration | One AI-assisted design or code mistake found by test or review, corrected, and retested - documented | M | P5/P4 | Not tested |
 | R12 | Swappable sensor bay | (If printed) payload module removed and replaced in < 60 s without tools | C | P1/P4 | Not tested |
+| R13 | GPS position | Latitude/longitude shown on the dashboard when the receiver has a fix; "no fix" shown otherwise (provisional) | S | P2/P3 | Not tested |
+| R14 | Camera feed | Live video from the camera ESP32 visible on the laptop (provisional) | S | P2/P3 | Not tested |
+| R15 | Rudder steering | Operator rudder command moves the servo to the commanded side; centred on a safety stop (provisional) | S | P2 | Not tested |
+| R16 | P controller (stretch) | Rudder correction proportional to IMU yaw rate, shown on the bench; PID only if time allows | C | P2/P3 | Not tested |
 
 ## 3. Explicit non-goals
-- No real autonomy, obstacle avoidance, GPS navigation or water trials this weekend; the mission is **simulated and supervised**.
+- No real autonomy, obstacle avoidance, GPS waypoint navigation or water trials this weekend; the mission is **simulated and supervised**. GPS is used to show position only.
+- No automatic roll/pitch correction (the rudder steers yaw only). No voice control. No Raspberry Pi.
 - Not certified; no claim of compliance with maritime or naval standards. Autonomous vessel trials must still follow applicable maritime rules.
 - No invented statistics, costs, military requirements or test outcomes. No cost-saving claims without a comparison.
 
 ## 4. Open questions
 - Presentation time limit, submission format and freeze/deadline times.
-- Which boards and sensors are available (Pi model, ESP32 board, IMU, pressure sensor, leak sensor).
+- Which boards and sensors are available (camera ESP32 board, control ESP32 board, IMU, GPS receiver, pressure sensor, leak sensor, motor driver, servo).

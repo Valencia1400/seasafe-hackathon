@@ -1,9 +1,9 @@
-"""Pi <-> ESP32 message protocol (see docs/architecture.md). One JSON object per line."""
+"""Laptop <-> control ESP32 message protocol (see docs/architecture.md). One JSON object per line."""
 import json
 
-HEARTBEAT_PERIOD_S = 0.2   # Pi sends a heartbeat this often
+HEARTBEAT_PERIOD_S = 0.2   # laptop sends a heartbeat this often
 HEARTBEAT_TIMEOUT_S = 1.0  # ESP32 stops the motors after this long without one
-TILT_WARNING_DEG = 30.0    # Pi shows a TILT warning beyond this roll or pitch
+TILT_WARNING_DEG = 30.0    # dashboard shows a TILT warning beyond this roll or pitch
 
 OK, ESTOP, COMMLOST, LEAK = "OK", "ESTOP", "COMMLOST", "LEAK"
 STATES = (OK, ESTOP, COMMLOST, LEAK)

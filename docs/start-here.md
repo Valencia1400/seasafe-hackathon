@@ -19,14 +19,14 @@ Read your own section, then start. Raise a blocker at the table after 30 minutes
 
 ## Person 1 - CAD
 1. Get component dimensions from Person 2 ([components.md](components.md)).
-2. Parametric catamaran assembly: two hulls, sealed electronics bay, two propulsion mounts, interchangeable sensor bay. See [cad/README.md](../cad/README.md).
+2. Parametric catamaran assembly: two hulls, sealed electronics bay, one propeller mount (DC motor), rear rudder with servo mount, camera mount, interchangeable sensor bay. See [cad/README.md](../cad/README.md).
 3. Geometry check: every component fits with the stated clearance; exploded view exported.
 4. Optional, only if a printer is free: print the sensor-bay module to show the swap physically.
 
 ## Person 2 - Electronics
 1. List the boards and sensors you actually have in [components.md](components.md); send dimensions to Person 1.
-2. ESP32: read IMU, pressure sensor and leak input; send telemetry; implement the safety rules (e-stop, comms-loss timeout, override). See [electronics/README.md](../electronics/README.md).
-3. Motor output on the bench: LEDs or a motor driver with no propeller. **Nothing powered near water.**
+2. Control ESP32: read IMU, GPS, pressure sensor and leak input; send telemetry; implement the safety rules (e-stop, comms-loss timeout, override). See [electronics/README.md](../electronics/README.md).
+3. Motor output on the bench: LEDs or the motor driver with no propeller; rudder servo on the bench. Camera ESP32: get a video stream to the laptop. **Nothing powered near water.**
 
 ## Person 4 - Verification
 **New to tech? Start with [beginner-electronics.md](beginner-electronics.md) (you are in the electronics group with Person 2)** - step-by-step tasks and simple AI prompts.
@@ -44,7 +44,7 @@ Read your own section, then start. Raise a blocker at the table after 30 minutes
 - [ ] Problem statement and target user validated by a mentor (quote recorded)
 - [ ] Requirements v1 agreed (section 2)
 - [ ] First editable CAD assembly
-- [ ] Pi/ESP32 architecture and message protocol frozen
+- [ ] Two-ESP32 architecture and message protocol frozen (incl. thr/rud change)
 - [ ] At least one real or simulated sensor reading shown on the dashboard
 - [ ] Test plan written; AI log started
 - [ ] Preliminary pitch narrative

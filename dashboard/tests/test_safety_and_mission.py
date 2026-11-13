@@ -1,7 +1,7 @@
-"""Unit tests for the simulator's safety rules and the Pi controller.
+"""Unit tests for the simulator's safety rules and the laptop controller.
 
 Run from the dashboard folder:  python -m unittest discover -s tests -v
-These test the SIMULATOR and the Pi logic, not the real ESP32 firmware.
+These test the SIMULATOR and the laptop logic, not the real ESP32 firmware.
 """
 import sys
 import unittest

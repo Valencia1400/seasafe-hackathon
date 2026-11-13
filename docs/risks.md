@@ -5,7 +5,7 @@
 | # | Risk | Likelihood | Impact | Early warning | Fallback | Owner |
 |---|---|---|---|---|---|---|
 | 1 | Problem not confirmed by mentors | Med | High | No mentor answer by Fri afternoon | Ask another mentor; use sourced research; adjust the mission to what they say | P3 |
-| 2 | Raspberry Pi missing or will not boot | Med | High | Not running by Fri midday | Run the Pi software on a laptop; same serial protocol | P2/P3 |
+| 2 | Camera ESP32 stream does not work or is too slow | Med | Med | No video on the laptop by Sat midday | Show the rest of the demo without video; a recorded clip only if it is real and labelled | P2/P3 |
 | 3 | A sensor is missing or broken | Med | Med | Component check Fri | Labelled test input (button/potentiometer) or simulator; say so on screen | P2 |
 | 4 | Serial link unreliable | Low | High | Gaps in `seq` | Lower rate, shorter cable, check baud; fall back to simulator for the dashboard part | P2 |
 | 5 | Safety stop does not work reliably | Low | High | T-R8/T-R9 fail | Fix before anything else; it is the core of the demo | P2 |

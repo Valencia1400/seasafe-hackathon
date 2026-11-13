@@ -5,13 +5,15 @@ Fill in what we **actually have**. Dimensions go to Person 1 for the CAD. Costs:
 ## Electronics
 | Item | Model | Have / Need | Size L x W x H (mm) | Mass (g) | Est. cost + source |
 |---|---|---|---|---|---|
-| Raspberry Pi | | | | | |
-| ESP32 board | | | | | |
+| ESP32 #1 - camera board | | | | | |
+| ESP32 #2 - control board | | | | | |
 | IMU | | | | | |
+| GPS/GNSS receiver (+ antenna) | | | | | |
 | Pressure sensor (atmospheric) | | | | | |
 | Leak sensor (or test input) | | | | | |
 | Motor driver | | | | | |
-| Motors (2, bench only) | | | | | |
+| DC propulsion motor (1) + propeller (no propeller on the bench) | | | | | |
+| Servo for rear rudder (1) | | | | | |
 | Battery / power | | | | | |
 | Cables, connectors | | | | | |
 
@@ -22,7 +24,7 @@ Fill in what we **actually have**. Dimensions go to Person 1 for the CAD. Costs:
 | Fasteners for the sensor bay | | | |
 
 ## Tools and software
-CAD tool, Arduino IDE / PlatformIO, Python on the Pi, AI assistants (log each use in ai-process.md).
+CAD tool, Arduino IDE / PlatformIO, Python on the laptop, AI assistants (log each use in ai-process.md).
 
 ## Cost summary for the pitch (only sourced prices)
 | Group | Sum | Sources |

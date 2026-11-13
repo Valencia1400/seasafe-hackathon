@@ -22,9 +22,10 @@ You own [tests/test-plan.md](../tests/test-plan.md) and [tests/test-results.md](
 ```
 I am a beginner with almost no tech experience, on a 5-person hackathon team (Saab x Marine Technology Center, "Prompt-to-Product").
 I am in the electronics group, helping the electronics lead and owning the tests.
-Our project: SeaGuardian, a small unmanned boat concept for harbour inspection after storms or incidents. A Raspberry Pi (small computer)
-runs the mission and a dashboard; an ESP32 (small microcontroller) reads sensors (MPU-6050 tilt sensor, BMP280 air pressure sensor, a leak input)
-and stops the motors by itself if something goes wrong (lost connection, emergency stop button, leak). Everything is tested on a dry table.
+Our project: SeaGuardian, a small unmanned boat concept for harbour inspection after storms or incidents. A laptop runs the mission
+and a dashboard; ESP32 #1 (small microcontroller) streams camera video; ESP32 #2 reads sensors (MPU-6050 tilt/turn-rate sensor, GPS,
+BMP280 air pressure sensor, a leak input), drives one propeller motor and a rudder servo, and stops the motor by itself if something goes wrong
+(lost connection, emergency stop button, leak). There is no Raspberry Pi. Everything is tested on a dry table.
 Please explain in simple words, avoid jargon (or explain it), use short steps, and tell me when you are unsure. Never invent facts or numbers.
 ```
 
@@ -35,8 +36,8 @@ Ask Person 2 to show you each board and sensor for 5 minutes. Then:
 
 Prompt E4-1:
 ```
-Explain these parts to me with a real-life comparison for each: ESP32, Raspberry Pi, MPU-6050 (IMU), BMP280, a leak sensor,
-a motor driver, a breadboard, a resistor. Then explain what a "heartbeat", "emergency stop" and "comms-loss timeout" are in our system.
+Explain these parts to me with a real-life comparison for each: ESP32 (we have two: camera and control), MPU-6050 (IMU), GPS, BMP280, a leak sensor,
+a motor driver, a servo, a breadboard, a resistor. Then explain what a "heartbeat", "emergency stop" and "comms-loss timeout" are in our system.
 End with 3 questions to check I understood.
 ```
 
@@ -113,14 +114,16 @@ In `docs/ai-log/<your-name>.md` (in the GitHub browser), add:
 | Word | Simple meaning |
 |---|---|
 | ESP32 | Tiny computer chip that reads sensors and controls motors |
-| Raspberry Pi | Small computer that runs the mission program and dashboard |
+| GPS | Receiver that tells where the boat is (position); it does not give a reliable direction when standing still |
+| Servo | Small motor that turns to an angle - it moves the rudder |
+| Rudder | Flap at the back that steers the boat left/right |
 | IMU (MPU-6050) | Tilt-and-motion sensor (roll = side to side, pitch = front to back) |
 | BMP280 | Air pressure sensor (hPa) |
 | I2C (SDA/SCL) | Two wires that several sensors share to talk to the ESP32 |
 | GND | Ground: the common "minus" every part must share |
 | PWM | Switching power on/off very fast to set motor speed |
 | Motor driver | Board between the ESP32 and the motors (the ESP32 cannot power motors directly) |
-| Heartbeat | "Still here" message the Pi sends 5 times a second; if it stops, the ESP32 stops the motors |
+| Heartbeat | "Still here" message the laptop sends 5 times a second; if it stops, the ESP32 stops the motors |
 | E-stop | Emergency stop: motors stop until someone presses Reset |
 | Telemetry | Stream of sensor readings sent to the dashboard |
 | Pass / Fail / Not tested | The only three allowed test results |

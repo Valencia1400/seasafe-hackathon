@@ -2,7 +2,7 @@
 
 Simulator (no hardware):   python run.py --sim
 Real ESP32 over USB:       python run.py --port COM5          (Windows)
-                           python run.py --port /dev/ttyUSB0  (Raspberry Pi)
+                           python run.py --port /dev/ttyUSB0  (Linux/macOS)
 Then open http://127.0.0.1:8000 (use --host 0.0.0.0 to open it from another computer).
 """
 import argparse

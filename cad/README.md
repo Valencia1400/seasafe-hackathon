@@ -4,8 +4,10 @@ Requirements R2, R3 (and R12 if a part is printed). Layout and interfaces: [docs
 
 ## The assembly
 - Two hulls joined by a deck (catamaran: stable platform, space for a central bay).
-- Sealed electronics bay: Raspberry Pi, ESP32, battery, motor drivers.
-- Two propulsion mounts (one per hull).
+- Sealed electronics bay: control ESP32, motor driver, battery, GPS receiver.
+- Camera ESP32 with a clear forward view (window/sealing).
+- **One** propeller mount for the DC motor.
+- **Rear rudder** with a servo mount and linkage (steering only; it does not stabilise roll/pitch).
 - Swappable sensor bay at the bow with a standard interface.
 
 ## Tooling
