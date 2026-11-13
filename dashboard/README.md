@@ -1,6 +1,28 @@
 # Mission software + dashboard (laptop) - Owner: Person 3
 
-> Hardware update (D-007): runs on the **laptop**; there is no Raspberry Pi. It talks to the **control ESP32** (#2). The camera ESP32 (#1) video and GPS coordinates are planned, not implemented yet. Motor output is still shown as L/R until the protocol change in docs/architecture.md is agreed.
+## NEW: operator dashboard, simulation mode (`opsdash/`) - work in progress
+Built for the current design (laptop + camera ESP32 + control ESP32, one DC motor, rear rudder). Pure Python standard library, no internet, no hardware.
+```bash
+python run_operator.py
+```
+Open http://127.0.0.1:8000.
+
+| Capability | Status |
+|---|---|
+| Mission state machine READY/RUNNING/STOPPED/FAULT, Start/Stop/E-STOP/Reset, event log | Implemented (simulated) |
+| Simulated IMU (roll, pitch, yaw rate), GPS position + validity, DC motor, rear rudder | Implemented (simulated) |
+| Scenarios: normal mission, tilt, comms loss (1.0 s timeout), E-STOP, steering, leak | Implemented (simulated) |
+| Camera panel | Placeholder only, no video |
+| Hardware mode (real ESP32 data and commands) | Future: needs the protocol agreed with Person 2 and tested equipment |
+| PID steering | Not implemented |
+
+Layout: `opsdash/mission.py` (state machine), `opsdash/simulator.py` (simulated control ESP32), `opsdash/protocol.py` (draft message format), `opsdash/console.py` (ties them together), `opsdash/server.py` + `opsdash/static/index.html` (web page). The simulator is separate from the presentation code, so a real ESP32 link can replace it later.
+The simulation shows intended logic only; it is not evidence of physical safety.
+Tests: `python -m unittest discover -s tests -v`.
+
+---
+
+> Hardware update (D-007): runs on the **laptop**. It talks to the **control ESP32** (#2). The camera ESP32 (#1) video and GPS coordinates are planned, not implemented yet. Motor output is still shown as L/R until the protocol change in docs/architecture.md is agreed.
 
 Protocol: [docs/architecture.md](../docs/architecture.md). Requirements R4, R5, R6, R10.
 
@@ -55,7 +77,7 @@ python -m unittest discover -s tests -v
 
 ## What has been verified (Fri 13 Nov)
 - 14 unit tests pass (simulator safety rules, mission, e-stop, comms loss, leak, tilt, bad input).
-- Simulator run through the API: mission started, motors 0.4/0.4, tilt warning at 38 deg, link cut -> ESP32 COMMLOST and motors 0 after 842 ms (Pi clock), reset back to OK.
+- Simulator run through the API: mission started, motors 0.4/0.4, tilt warning at 38 deg, link cut -> ESP32 COMMLOST and motors 0 after 842 ms (laptop clock), reset back to OK.
 - **Not verified:** the real ESP32 over serial, the page's look on the stage screen. **Not implemented:** camera stream, GPS coordinates, rudder servo command.
 
 ## Note on the comms-loss timing

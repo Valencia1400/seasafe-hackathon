@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SeaGuardian Operator Dashboard</title>
+<style>
+  :root{--bg:#0b1620;--panel:#12222f;--line:#24394a;--text:#e6f0f6;--dim:#8aa3b5;--ok:#3ddc84;--warn:#ffb020;--bad:#ff4d5e;--accent:#4cc3ff}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,"Segoe UI",sans-serif}
+  header{display:flex;gap:12px;align-items:center;padding:12px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+  h1{font-size:22px;margin:0;letter-spacing:.06em}
+  .tag{padding:3px 10px;border-radius:4px;font-weight:700;font-size:12px;white-space:nowrap}
+  .sim{background:var(--warn);color:#000}
+  .future{background:#2a3a48;color:var(--dim)}
+  #banner{display:none;margin:12px 20px 0;padding:14px 18px;border-radius:6px;background:var(--bad);color:#fff;font-size:21px;font-weight:700}
+  #warnbar{display:none;margin:12px 20px 0;padding:10px 18px;border-radius:6px;background:var(--warn);color:#000;font-size:17px;font-weight:700}
+  main{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding:16px 20px}
+  @media (max-width:1000px){main{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+  .panel h2{margin:0 0 10px;font-size:13px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .span2{grid-column:span 2}
+  @media (max-width:1000px){.span2{grid-column:auto}}
+  #state{font-size:44px;font-weight:800;letter-spacing:.04em}
+  .READY{color:var(--accent)} .RUNNING{color:var(--ok)} .STOPPED{color:var(--warn)} .FAULT{color:var(--bad)}
+  .row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--line)}
+  .row:last-child{border:0}
+  .row b{font-variant-numeric:tabular-nums;text-align:right}
+  .note{color:var(--dim);font-size:13px;margin-top:8px}
+  .buttons{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  button{background:#1d3446;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:10px 14px;font-size:15px;cursor:pointer}
+  button:hover:not(:disabled){border-color:var(--accent)}
+  button:disabled{opacity:.35;cursor:not-allowed}
+  #b-start{background:#1c5a3a;border-color:var(--ok);font-size:16px;padding:12px 18px}
+  #b-stop,#b-reset{font-size:16px;padding:12px 18px}
+  #b-estop{background:var(--bad);border-color:var(--bad);color:#fff;font-weight:800;font-size:20px;padding:12px 24px}
+  .placeholder{border:2px dashed var(--line);border-radius:6px;padding:34px 12px;text-align:center;color:var(--dim)}
+  .placeholder b{display:block;color:var(--text);margin-bottom:4px;font-size:18px}
+  #log{max-height:300px;overflow:auto;font:13px/1.5 Consolas,monospace}
+  #log div{padding:2px 0;border-bottom:1px solid #1a2c3a}
+  .warn{color:var(--warn)} .fault,.bad{color:var(--bad)} .ok{color:var(--ok)}
+  #msg{margin-top:10px;min-height:22px;color:var(--dim)}
+  .stale .val{opacity:.35}
+  .nodata{display:none;color:var(--bad);font-weight:700;font-size:13px}
+  .stale .nodata{display:inline}
+  svg{width:100%;height:auto;background:#0e1c27;border-radius:6px;display:block}
+  input[type=range]{width:100%}
+  footer{padding:8px 20px 20px;color:var(--dim);font-size:13px}
+</style>
+</head>
+<body>
+<header>
+  <h1>SEAGUARDIAN</h1>
+  <span class="tag sim">SIMULATION MODE: ALL DATA IS SIMULATED</span>
+  <span class="tag future">HARDWARE MODE: FUTURE, NOT IMPLEMENTED</span>
+</header>
+<div id="banner"></div>
+<div id="warnbar"></div>
+<main>
+  <!-- A. Mission control -->
+  <section class="panel span2">
+    <h2>A. Mission control <span class="tag sim">SIMULATED INSPECTION MISSION</span></h2>
+    <div style="display:flex;gap:24px;align-items:baseline;flex-wrap:wrap">
+      <div id="state" class="READY">READY</div>
+      <div class="note" id="elapsed"></div>
+    </div>
+    <div class="buttons">
+      <button id="b-start">Start mission</button>
+      <button id="b-stop">Stop mission</button>
+      <button id="b-estop">EMERGENCY STOP</button>
+      <button id="b-reset">Reset</button>
+    </div>
+    <div id="msg"></div>
+    <div class="note">READY &rarr; RUNNING &rarr; STOPPED &rarr; (Reset) READY. E-STOP or a fault gives FAULT; only a confirmed Reset returns to READY, and Reset never restarts the motor.</div>
+  </section>
+
+  <!-- B. Camera -->
+  <section class="panel">
+    <h2>B. Camera view <span class="tag future">PLACEHOLDER</span></h2>
+    <div class="placeholder"><b>NO CAMERA CONNECTED</b>Planned: live video from the camera ESP32 (#1). Not implemented: this is not live video.</div>
+  </section>
+
+  <!-- C. IMU -->
+  <section class="panel" id="p-imu">
+    <h2>C. IMU <span class="tag sim">SIMULATED</span> <span class="nodata">NO DATA</span></h2>
+    <div class="row"><span>Roll</span><b class="val" id="roll">-</b></div>
+    <div class="row"><span>Pitch</span><b class="val" id="pitch">-</b></div>
+    <div class="row"><span>Yaw rate</span><b class="val" id="yaw">-</b></div>
+    <div class="note">Yaw rate is how fast the vessel is turning (+ = to starboard). It is not a compass heading; no heading is shown.</div>
+  </section>
+
+  <!-- D. GPS -->
+  <section class="panel" id="p-gps">
+    <h2>D. GPS navigation <span class="tag sim">SIMULATED POSITION</span> <span class="nodata">NO DATA</span></h2>
+    <div class="row"><span>Latitude</span><b class="val" id="lat">-</b></div>
+    <div class="row"><span>Longitude</span><b class="val" id="lon">-</b></div>
+    <div class="row"><span>GPS validity</span><b class="val" id="gpsvalid">-</b></div>
+    <svg id="track" viewBox="0 0 200 110" style="margin-top:8px"></svg>
+    <div class="note">Track of the simulated position (north up). No map tiles: works offline.</div>
+  </section>
+
+  <!-- E. Motor and rudder -->
+  <section class="panel" id="p-motor">
+    <h2>E. Motor and rear rudder <span class="tag sim">SIMULATED</span> <span class="nodata">NO DATA</span></h2>
+    <div class="row"><span>DC motor (reported)</span><b class="val" id="motorrep">-</b></div>
+    <div class="row"><span>Motor command (dashboard)</span><b id="motorcmd">STOPPED</b></div>
+    <div class="row"><span>Rudder command</span><b id="rcmd">-</b></div>
+    <div class="row"><span>Rudder angle (servo)</span><b class="val" id="rang">-</b></div>
+    <div class="row"><span>Steering</span><b class="val" id="rdir">-</b></div>
+    <svg id="boat" viewBox="0 0 200 170" style="margin-top:8px;max-width:260px;margin-left:auto;margin-right:auto"></svg>
+    <input type="range" id="rslider" min="-30" max="30" step="5" value="0">
+    <div class="buttons" style="margin-top:6px">
+      <button id="r-port">Port 15&deg;</button>
+      <button id="r-centre">Centre</button>
+      <button id="r-star">Starboard 15&deg;</button>
+    </div>
+    <div class="note">Rear rudder: starboard (+) swings the stern to port and turns the bow to starboard. Servo movement is simulated.</div>
+  </section>
+
+  <!-- F. Safety -->
+  <section class="panel">
+    <h2>F. Safety monitoring</h2>
+    <div class="row"><span>Controller communication</span><b id="comms">-</b></div>
+    <div class="row"><span>Emergency stop</span><b id="estop-state">-</b></div>
+    <div class="row"><span>Controller fault</span><b id="cfault">-</b></div>
+    <div class="row"><span>Leak sensor</span><b id="leak">-</b></div>
+    <div class="row"><span>Latched fault causes</span><b id="causes">-</b></div>
+    <div class="note">Communication-loss rule (simulated): if the control ESP32 hears no laptop heartbeat for 1.0 s it stops the motor itself and latches COMMS_TIMEOUT. The dashboard shows COMMS LOST after 1.0 s without telemetry. The real ESP32 must enforce this independently: the laptop is never the only safety mechanism.</div>
+  </section>
+
+  <!-- Scenarios -->
+  <section class="panel">
+    <h2>Demo scenarios <span class="tag sim">SIMULATION ONLY</span></h2>
+    <div class="buttons" style="margin-top:0">
+      <button id="s-tilt">Trigger tilt event</button>
+      <button id="s-cut">Cut comms link</button>
+      <button id="s-restore">Restore comms link</button>
+      <button id="s-leakon">Leak: wet</button>
+      <button id="s-leakoff">Leak: dry</button>
+      <button id="s-restart">Restart simulation</button>
+    </div>
+    <div class="note">Scenario 1 Start/Stop &bull; 2 Tilt &bull; 3 Cut comms, wait ~1 s, restore, Reset &bull; 4 E-STOP, Reset &bull; 5 Rudder buttons. "Restart simulation" is a demo harness reset, not a safety reset.</div>
+  </section>
+
+  <!-- G. Event log -->
+  <section class="panel">
+    <h2>G. Event log</h2>
+    <div id="log"></div>
+  </section>
+</main>
+<footer>
+  Software simulation only. Nothing here proves physical safety: motor safety must be enforced independently by the control ESP32. PID steering is not implemented. Camera and hardware mode are future work.
+</footer>
+<script>
+const $ = id => document.getElementById(id);
+let busy = false, lastState = "READY", draggingRudder = false;
+const f = (v, unit, d = 1) => (v === undefined || v === null) ? "-" : `${Number(v).toFixed(d)} ${unit}`;
+
+async function send(name, body){
+  if (busy && name !== "estop") return;   // guard against double clicks, but never drop E-STOP
+  busy = true;
+  try {
+    const r = await fetch("/api/command/" + name, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body || {})});
+    const j = await r.json();
+    $("msg").textContent = j.message === "ok" ? "" : j.message;
+    $("msg").style.color = j.ok ? "var(--dim)" : "var(--warn)";
+  } catch (e) { $("msg").textContent = "Cannot reach the dashboard server."; }
+  busy = false; refresh();
+}
+$("b-start").onclick = () => send("start");
+$("b-stop").onclick = () => send("stop");
+$("b-estop").onclick = () => send("estop");
+$("b-reset").onclick = () => {
+  if (lastState === "FAULT" && !confirm("Clear the fault and return to READY?\n\nThe motor stays STOPPED until you press Start again.")) return;
+  send("reset", {confirm: lastState === "FAULT"});
+};
+$("r-port").onclick = () => send("rudder", {deg: -15});
+$("r-centre").onclick = () => send("rudder", {deg: 0});
+$("r-star").onclick = () => send("rudder", {deg: 15});
+$("rslider").onpointerdown = () => draggingRudder = true;
+$("rslider").onchange = e => { draggingRudder = false; send("rudder", {deg: Number(e.target.value)}); };
+$("s-tilt").onclick = () => send("scenario-tilt");
+$("s-cut").onclick = () => send("scenario-link_cut");
+$("s-restore").onclick = () => send("scenario-link_restore");
+$("s-leakon").onclick = () => send("scenario-leak_on");
+$("s-leakoff").onclick = () => send("scenario-leak_off");
+$("s-restart").onclick = () => { if (confirm("Restart the whole simulation (demo only)?")) send("scenario-restart", {confirm: true}); };
+
+function drawBoat(angle){
+  // top view, bow up. Rudder pivots at the stern; + angle swings the blade's trailing edge to starboard (right).
+  const a = (angle || 0) * Math.PI / 180, px = 100, py = 120, len = 34;
+  const ex = px + len * Math.sin(a), ey = py + len * Math.cos(a);
+  $("boat").innerHTML = `
+    <path d="M100 10 C132 40 134 100 128 124 L72 124 C66 100 68 40 100 10 Z" fill="#1d3446" stroke="#4cc3ff" stroke-width="2"/>
+    <text x="100" y="60" text-anchor="middle" font-size="11" fill="#8aa3b5">BOW</text>
+    <text x="100" y="112" text-anchor="middle" font-size="11" fill="#8aa3b5">STERN</text>
+    <line x1="${px}" y1="${py + 4}" x2="${px}" y2="${py + len}" stroke="#3a5266" stroke-width="2" stroke-dasharray="3 3"/>
+    <line x1="${px}" y1="${py}" x2="${ex}" y2="${ey}" stroke="#ffb020" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="${px}" cy="${py}" r="4" fill="#e6f0f6"/>
+    <text x="8" y="160" font-size="11" fill="#8aa3b5">PORT</text>
+    <text x="192" y="160" font-size="11" fill="#8aa3b5" text-anchor="end">STARBOARD</text>`;
+}
+
+function drawTrack(pts){
+  if (!pts.length) { $("track").innerHTML = `<text x="100" y="58" text-anchor="middle" font-size="11" fill="#8aa3b5">no position yet</text>`; return; }
+  const lat0 = pts[0][0], lon0 = pts[0][1], k = Math.cos(lat0 * Math.PI / 180);
+  const xy = pts.map(([la, lo]) => [(lo - lon0) * 111320 * k, -(la - lat0) * 111320]);   // metres, north up
+  const xs = xy.map(p => p[0]), ys = xy.map(p => p[1]);
+  const minx = Math.min(...xs), maxx = Math.max(...xs), miny = Math.min(...ys), maxy = Math.max(...ys);
+  const span = Math.max(maxx - minx, (maxy - miny) * 200 / 110, 20), s = 170 / span;
+  const X = x => 15 + (x - minx) * s, Y = y => 15 + (y - miny) * s;   // y is already north-negative
+  const line = xy.map(p => `${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(" ");
+  const last = xy[xy.length - 1];
+  $("track").innerHTML = `<polyline points="${line}" fill="none" stroke="#4cc3ff" stroke-width="1.5"/>
+    <circle cx="${X(last[0])}" cy="${Y(last[1])}" r="4" fill="#3ddc84"/>
+    <text x="195" y="12" text-anchor="end" font-size="10" fill="#8aa3b5">N &uarr; &nbsp; ${span.toFixed(0)} m wide</text>`;
+}
+
+async function refresh(){
+  let s;
+  try { s = await (await fetch("/api/state")).json(); }
+  catch (e) { $("banner").style.display = "block"; $("banner").textContent = "Dashboard cannot reach the server"; return; }
+  lastState = s.state;
+  const t = s.telemetry, stale = s.telemetry_stale;
+  $("state").textContent = s.state; $("state").className = s.state;
+  $("elapsed").textContent = s.mission_elapsed_s === null ? "" : `Mission time ${s.mission_elapsed_s} s (simulated)`;
+  $("b-start").disabled = !s.allowed.start; $("b-stop").disabled = !s.allowed.stop; $("b-reset").disabled = !s.allowed.reset;
+  const fault = s.state === "FAULT";
+  $("banner").style.display = fault ? "block" : "none";
+  $("banner").textContent = fault ? "FAULT: " + s.fault_causes.join(", ") + " - motor command STOPPED. Deliberate reset required." : "";
+  $("warnbar").style.display = s.warnings.length ? "block" : "none";
+  $("warnbar").textContent = s.warnings.join("  |  ");
+  ["p-imu", "p-gps", "p-motor"].forEach(id => $(id).classList.toggle("stale", !!stale));
+
+  $("roll").textContent = t ? f(t.imu.roll_deg, "deg") : "-";
+  $("pitch").textContent = t ? f(t.imu.pitch_deg, "deg") : "-";
+  $("yaw").textContent = t ? f(t.imu.yaw_rate_dps, "deg/s") : "-";
+  $("lat").textContent = t ? t.gps.lat.toFixed(6) : "-";
+  $("lon").textContent = t ? t.gps.lon.toFixed(6) : "-";
+  $("gpsvalid").textContent = t ? (t.gps.valid ? "VALID (simulated)" : "NO FIX") : "-";
+  drawTrack(s.track);
+
+  $("motorrep").textContent = t ? (t.motor.running ? "RUNNING" : "STOPPED") : "-";
+  $("motorcmd").textContent = s.motor_command;
+  $("rcmd").textContent = t ? f(t.rudder.command_deg, "deg", 0) : "-";
+  const ang = t ? t.rudder.angle_deg : 0;
+  $("rang").textContent = t ? f(ang, "deg") : "-";
+  $("rdir").textContent = !t ? "-" : ang > 2 ? "STARBOARD (bow turns right)" : ang < -2 ? "PORT (bow turns left)" : "CENTRE";
+  drawBoat(ang);
+  if (!draggingRudder && t) $("rslider").value = t.rudder.command_deg;
+
+  const comms = $("comms");
+  comms.textContent = s.comms === "OK" ? "OK" : s.comms === "WAITING" ? "waiting for telemetry" : `LOST${s.link_cut ? " (link cut by simulation)" : ""}`;
+  comms.className = s.comms === "OK" ? "ok" : "bad";
+  const estop = s.fault_causes.includes("E-STOP");
+  $("estop-state").textContent = estop ? "ACTIVE (latched)" : "not active"; $("estop-state").className = estop ? "fault" : "";
+  $("cfault").textContent = s.controller_fault || "none"; $("cfault").className = s.controller_fault ? "fault" : "";
+  const leak = t && t.leak;
+  $("leak").textContent = !t ? "-" : leak ? "WET" : "dry (simulated)"; $("leak").className = leak ? "fault" : "";
+  $("causes").textContent = s.fault_causes.length ? s.fault_causes.join(", ") : "none";
+
+  $("log").innerHTML = s.events.slice().reverse().map(e =>
+    `<div class="${e.level === "fault" ? "fault" : e.level === "warn" ? "warn" : ""}">${new Date(e.time * 1000).toLocaleTimeString()}  ${e.text.replace(/</g, "&lt;")}</div>`).join("");
+}
+setInterval(refresh, 250); refresh();
+</script>
+</body>
+</html>
