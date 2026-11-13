@@ -131,3 +131,4 @@ Fill in after each real test (board, distance, network). Until then these are un
 | Date | Setup | ESP32 fps | Viewer fps | infer_ms | Notes |
 |---|---|---|---|---|---|
 | 13 Nov | MacBook Air + XIAO on the iPhone hotspot, board ~1 m from the phone (RSSI -30 dBm), VGA 640x480, quality 12 | 26.7 | 20-26 | 21-27 | YOLO26n on CPU; person detected at 0.45-0.83 |
+| 13 Nov | Full chain: camera -> iPhone hotspot -> viewer -> `dashboard/run_operator.py --camera-viewer http://127.0.0.1:8001` | 17.8 | 19-20 | 22-24 | Dashboard showed REAL CAMERA and "Person detected"; CAMERA DOWN shown correctly while the board was off, recovered without restart |
