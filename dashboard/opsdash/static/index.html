@@ -3,175 +3,284 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SeaGuardian Operator Dashboard</title>
+<title>SeaGuardian Operator Console</title>
 <style>
-  :root{--bg:#0b1620;--panel:#12222f;--line:#24394a;--text:#e6f0f6;--dim:#8aa3b5;--ok:#3ddc84;--warn:#ffb020;--bad:#ff4d5e;--accent:#4cc3ff}
+  /* Paper-chart palette: water tints, chart magenta for cautions, port red / starboard green for steering.
+     Fonts are system fonts only, so the page works offline (DIN on macOS, Bahnschrift on Windows). */
+  :root{
+    --water:#E2EEF2; --shoal:#CFE4EC; --paper:#FBFCFA; --rule:#C3D3DA;
+    --ink:#1B2630; --ink-2:#51616D; --chart-blue:#1F5C8A;
+    --buff:#EEDDA8; --buff-2:#F7EDCB; --buff-ink:#5A4A12;
+    --magenta:#A3196F; --red:#C8231B; --green:#14794A; --yellow:#F2C200;
+    --num:"DIN Alternate","Bahnschrift","DIN Condensed","Arial Narrow",system-ui,sans-serif;
+    --text:"Avenir Next","Segoe UI",system-ui,-apple-system,sans-serif;
+    --hatch:repeating-linear-gradient(135deg,var(--buff) 0 5px,var(--buff-2) 5px 10px);
+  }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font:16px/1.4 system-ui,"Segoe UI",sans-serif}
-  header{display:flex;gap:12px;align-items:center;padding:12px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap}
-  h1{font-size:22px;margin:0;letter-spacing:.06em}
-  .tag{padding:3px 10px;border-radius:4px;font-weight:700;font-size:12px;white-space:nowrap}
-  .sim{background:var(--warn);color:#000}
-  .future{background:#2a3a48;color:var(--dim)}
-  #banner{display:none;margin:12px 20px 0;padding:14px 18px;border-radius:6px;background:var(--bad);color:#fff;font-size:21px;font-weight:700}
-  #warnbar{display:none;margin:12px 20px 0;padding:10px 18px;border-radius:6px;background:var(--warn);color:#000;font-size:17px;font-weight:700}
-  main{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;padding:16px 20px}
-  @media (max-width:1000px){main{grid-template-columns:1fr}}
-  .panel{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
-  .panel h2{margin:0 0 10px;font-size:13px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .span2{grid-column:span 2}
-  @media (max-width:1000px){.span2{grid-column:auto}}
-  #state{font-size:44px;font-weight:800;letter-spacing:.04em}
-  .READY{color:var(--accent)} .RUNNING{color:var(--ok)} .STOPPED{color:var(--warn)} .FAULT{color:var(--bad)}
-  .row{display:flex;justify-content:space-between;gap:10px;padding:5px 0;border-bottom:1px solid var(--line)}
-  .row:last-child{border:0}
-  .row b{font-variant-numeric:tabular-nums;text-align:right}
-  .note{color:var(--dim);font-size:13px;margin-top:8px}
-  .buttons{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-  button{background:#1d3446;color:var(--text);border:1px solid var(--line);border-radius:6px;padding:10px 14px;font-size:15px;cursor:pointer}
-  button:hover:not(:disabled){border-color:var(--accent)}
-  button:disabled{opacity:.35;cursor:not-allowed}
-  #b-start{background:#1c5a3a;border-color:var(--ok);font-size:16px;padding:12px 18px}
-  #b-stop,#b-reset{font-size:16px;padding:12px 18px}
-  #b-estop{background:var(--bad);border-color:var(--bad);color:#fff;font-weight:800;font-size:20px;padding:12px 24px}
-  .placeholder{border:2px dashed var(--line);border-radius:6px;padding:34px 12px;text-align:center;color:var(--dim)}
-  .placeholder b{display:block;color:var(--text);margin-bottom:4px;font-size:18px}
-  #log{max-height:300px;overflow:auto;font:13px/1.5 Consolas,monospace}
-  #log div{padding:2px 0;border-bottom:1px solid #1a2c3a}
-  .warn{color:var(--warn)} .fault,.bad{color:var(--bad)} .ok{color:var(--ok)}
-  #msg{margin-top:10px;min-height:22px;color:var(--dim)}
+  body{margin:0;background:var(--water);color:var(--ink);font:15px/1.5 var(--text)}
+  code{font:12.5px/1 Menlo,Consolas,monospace;background:var(--shoal);padding:2px 4px;border-radius:3px}
+  :focus-visible{outline:3px solid var(--magenta);outline-offset:2px}
+  [hidden]{display:none !important}
+
+  .top{display:flex;justify-content:space-between;align-items:center;gap:10px 24px;flex-wrap:wrap;padding:12px 20px;background:var(--paper);border-bottom:1px solid var(--rule)}
+  .brand{display:flex;align-items:center;gap:12px}
+  .brand svg{width:30px;height:30px}
+  .wordmark{font:700 26px/1 var(--num);letter-spacing:.01em}
+  .brand small{font-size:14px;color:var(--ink-2)}
+  .legend{margin:0;display:flex;align-items:center;gap:8px;color:var(--ink-2);font-size:13.5px;max-width:62ch}
+  .swatch{flex:0 0 auto;width:22px;height:14px;border-radius:3px;background:var(--hatch)}
+
+  #banner,#warnbar{display:none;margin:14px 20px 0;padding:12px 18px;border-radius:10px;color:#fff;font:700 19px/1.35 var(--text)}
+  #banner{background:var(--red)}
+  #warnbar{background:var(--magenta);font-size:16px}
+
+  .grid{display:grid;gap:14px;padding:14px 20px 8px;grid-template-columns:minmax(0,1.6fr) minmax(340px,1fr);grid-template-areas:"cam ops" "band band" "demo demo";align-items:start}
+  .ops{grid-area:ops;display:grid;gap:14px}
+  .band{grid-area:band;display:grid;gap:14px;grid-template-columns:1.15fr 0.8fr 1fr 1.15fr;align-items:start}
+  .demo{grid-area:demo;display:grid;gap:14px;grid-template-columns:1.4fr 1fr;align-items:start}
+  @media (max-width:1180px){
+    .grid{grid-template-columns:1fr;grid-template-areas:"cam" "ops" "band" "demo"}
+    .band{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+
+  .panel{position:relative;background:var(--paper);border:1px solid var(--rule);border-radius:10px;padding:14px 16px;min-width:0}
+  .panel.sim{padding-left:26px}
+  .panel.sim::before{content:"";position:absolute;left:0;top:0;bottom:0;width:10px;border-radius:9px 0 0 9px;background:var(--hatch)}
+  .panel h2{margin:0 0 10px;font:600 17px/1.3 var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .chip{font:600 12px/1 var(--text);padding:5px 9px;border-radius:999px;background:var(--shoal);color:var(--ink);white-space:nowrap}
+  .chip.sim{background:var(--hatch);color:var(--buff-ink)}
+  .chip.plain{background:transparent;border:1px solid var(--rule);color:var(--ink-2)}
+  .nodata{display:none;font:700 12px/1 var(--text);color:#fff;background:var(--red);padding:5px 9px;border-radius:999px}
+  .stale .nodata{display:inline-block}
   .stale .val{opacity:.35}
-  .nodata{display:none;color:var(--bad);font-weight:700;font-size:13px}
-  .stale .nodata{display:inline}
-  svg{width:100%;height:auto;background:#0e1c27;border-radius:6px;display:block}
-  input[type=range]{width:100%}
-  footer{padding:8px 20px 20px;color:var(--dim);font-size:13px}
+  .note{color:var(--ink-2);font-size:13px;line-height:1.5;margin:10px 0 0;max-width:80ch}
+  .ok{color:var(--green)} .bad,.fault{color:var(--red)} .warn{color:var(--magenta)}
+
+  .row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:6px 0;border-bottom:1px solid #E3EBEE}
+  .row:last-child{border-bottom:0}
+  .row span{color:var(--ink-2)}
+  .row b{font:700 16px/1.3 var(--num);text-align:right;font-variant-numeric:tabular-nums}
+
+  button{font:600 15px/1 var(--text);border-radius:8px;padding:12px 16px;border:1.5px solid var(--ink);background:var(--paper);color:var(--ink);cursor:pointer}
+  button:hover:not(:disabled){background:var(--shoal)}
+  button:disabled{opacity:.3;cursor:not-allowed}
+  .buttons{display:flex;flex-wrap:wrap;gap:8px}
+  .go{background:var(--green);border-color:var(--green);color:#fff}
+  .go:hover:not(:disabled){background:#0E6038}
+  .small{font-size:14px;padding:9px 12px;border-color:var(--rule)}
+  .port{border-color:var(--red);color:var(--red)}
+  .stbd{border-color:var(--green);color:var(--green)}
+
+  /* Camera */
+  .cam{grid-area:cam}
+  .input-badge{margin:0 0 10px;padding:8px 12px;border-radius:8px;font-weight:600;font-size:14px}
+  .input-badge.real{background:#DCEFE4;color:#0D4F30;border-left:6px solid var(--green)}
+  .input-badge.test{background:var(--hatch);color:var(--buff-ink);font-size:16px;font-weight:700}
+  .frame{position:relative;width:100%;aspect-ratio:4/3;max-height:64vh;background:#0F1D26;border-radius:8px;overflow:hidden}
+  #camimg{width:100%;height:100%;object-fit:contain;display:none}
+  .frame-msg{position:absolute;inset:0;display:grid;place-content:center;gap:6px;padding:24px;text-align:center;color:#D9E6EC;font-size:15px;background:rgba(15,29,38,.72)}
+  .frame-msg b{display:block;font:700 30px/1.1 var(--num);color:#fff}
+  .frame-msg.bad b{color:#FF8A80}
+  .frame-msg code{background:#24384A;color:#D9E6EC}
+  .cam-foot{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 24px;margin-top:12px;align-items:start}
+  .cam-foot h3{margin:0 0 6px;font:600 15px/1.3 var(--text)}
+  .cam-foot h3 span{font-weight:400;color:var(--ink-2);font-size:13px}
+  .dets{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+  .dets li{display:grid;grid-template-columns:minmax(120px,auto) minmax(60px,1fr) 3.2em;align-items:center;gap:10px;color:var(--magenta);font-weight:600}
+  .dets li.person{color:var(--red)}
+  .dets .bar{height:8px;border-radius:4px;background:#EADCE5}
+  .dets li.person .bar{background:#F3D9D7}
+  .dets .bar i{display:block;height:100%;border-radius:4px;background:currentColor}
+  .dets b{font:700 17px/1 var(--num);text-align:right}
+  .empty{margin:0;color:var(--ink-2)}
+  #cammeta{display:grid;grid-template-columns:auto auto;gap:2px 12px;margin:0;font-size:13.5px}
+  #cammeta dt{color:var(--ink-2)}
+  #cammeta dd{margin:0;font:700 15px/1.4 var(--num);text-align:right}
+
+  /* Mission + E-STOP */
+  .mission-body{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px 16px;align-items:start}
+  .mission-body .buttons{align-self:end}
+  .estop{grid-row:span 2}
+  #state{font:700 58px/1 var(--num);letter-spacing:.01em;margin:2px 0 4px}
+  #state.READY{color:var(--chart-blue)} #state.RUNNING{color:var(--green)} #state.STOPPED{color:var(--ink-2)} #state.FAULT{color:var(--red)}
+  #elapsed{color:var(--ink-2);font-size:14px;min-height:21px;margin-bottom:12px}
+  #msg{min-height:22px;margin-top:10px;color:var(--ink-2);font-size:14px}
+  .estop{flex:0 0 auto;width:148px;height:148px;padding:0;border:0;border-radius:14px;background:var(--yellow);display:grid;place-items:center;position:relative}
+  .estop:hover:not(:disabled){background:#FFD21A}
+  .estop-cap{width:112px;height:112px;border-radius:50%;display:grid;place-items:center;text-align:center;padding:12px;color:#fff;font:700 15px/1.15 var(--text);
+    background:radial-gradient(circle at 38% 32%,#EA5248,var(--red) 58%,#9A1913);box-shadow:0 6px 0 #841410,0 9px 14px rgba(110,20,10,.35)}
+  .estop:active .estop-cap{transform:translateY(4px);box-shadow:0 2px 0 #841410}
+  .estop-key{position:absolute;right:8px;bottom:6px;font:600 11px/1 var(--text);color:var(--buff-ink)}
+
+  /* Instruments */
+  .readout{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px solid #E3EBEE}
+  .readout:last-of-type{border-bottom:0}
+  .readout span{color:var(--ink-2)}
+  .readout b{font:700 34px/1 var(--num);font-variant-numeric:tabular-nums}
+  svg.drawing{display:block;width:100%;height:auto}
+  #boat{max-width:240px;margin:6px auto 0}
+  #track{margin-top:10px;background:var(--shoal);border-radius:8px}
+  input[type=range]{width:100%;accent-color:var(--ink);margin:8px 0}
+  #log{list-style:none;margin:0;padding:0;max-height:330px;overflow:auto;font-size:13.5px}
+  #log li{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:5px 0;border-bottom:1px solid #E3EBEE}
+  #log time{font:700 13px/1.5 var(--num);color:var(--ink-2);font-variant-numeric:tabular-nums}
+  #log li.warn span{color:var(--magenta)} #log li.fault span{color:var(--red);font-weight:600}
+
+  footer{padding:6px 20px 24px;color:var(--ink-2);font-size:13px;max-width:110ch}
+  @media (max-width:700px){
+    .grid{padding:12px 16px 6px}
+    .band,.demo{grid-template-columns:1fr}
+    .top,#banner,#warnbar{margin-left:16px;margin-right:16px}
+    .top{margin:0;padding:12px 16px}
+    .cam-foot{grid-template-columns:1fr}
+    .estop{grid-row:auto;width:128px;height:128px}
+    .estop-cap{width:98px;height:98px;font-size:14px}
+    .mission-body .buttons{grid-column:1 / -1}
+    #state{font-size:34px}
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>SEAGUARDIAN</h1>
-  <span class="tag sim">SIMULATION MODE: ALL DATA IS SIMULATED</span>
-  <span class="tag future">HARDWARE MODE: FUTURE, NOT IMPLEMENTED</span>
+<header class="top">
+  <div class="brand">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 3c3 4 3 22 2 26H7C6 25 6 7 9 3zM23 3c3 4 3 22 2 26h-4c-1-4-1-22 2-26z" fill="#1B2630"/><rect x="10" y="12" width="12" height="10" rx="1.5" fill="#1F5C8A"/></svg>
+    <span class="wordmark">SeaGuardian</span>
+    <small>Operator console</small>
+  </div>
+  <p class="legend"><span class="swatch"></span>Hatched panels show simulated data: the control ESP32 runs in software, and hardware mode is not built yet.</p>
 </header>
-<div id="banner"></div>
-<div id="warnbar"></div>
-<main>
-  <!-- A. Mission control -->
-  <section class="panel span2">
-    <h2>A. Mission control <span class="tag sim">SIMULATED INSPECTION MISSION</span></h2>
-    <div style="display:flex;gap:24px;align-items:baseline;flex-wrap:wrap">
-      <div id="state" class="READY">READY</div>
-      <div class="note" id="elapsed"></div>
+<div id="banner" role="alert"></div>
+<div id="warnbar" role="status"></div>
+
+<main class="grid">
+  <!-- Camera: the one live hardware feed -->
+  <section class="panel cam" aria-labelledby="h-cam">
+    <h2 id="h-cam">Camera <span class="chip plain" id="camtag">Not configured</span></h2>
+    <div id="caminput" class="input-badge" hidden></div>
+    <div class="frame">
+      <img id="camimg" alt="Annotated video from the boat camera">
+      <div class="frame-msg" id="camph"><b>No camera connected</b><span>Start <code>vision/viewer.py</code>, then run the dashboard with <code>--camera-viewer http://127.0.0.1:8001</code>.</span></div>
+      <div class="frame-msg" id="camstat" hidden></div>
     </div>
-    <div class="buttons">
-      <button id="b-start">Start mission</button>
-      <button id="b-stop">Stop mission</button>
-      <button id="b-estop">EMERGENCY STOP</button>
-      <button id="b-reset">Reset</button>
+    <div class="cam-foot">
+      <div id="camdets"></div>
+      <dl id="cammeta"></dl>
     </div>
-    <div id="msg"></div>
-    <div class="note">READY &rarr; RUNNING &rarr; STOPPED &rarr; (Reset) READY. E-STOP or a fault gives FAULT; only a confirmed Reset returns to READY, and Reset never restarts the motor.</div>
+    <p class="note">Object detection only: potential objects for operator review. Not an assessment of harbour damage or of any emergency. Confidence is the model's own score, not verified accuracy. The camera is not part of the motor safety chain, and detections never control the motor or rudder.</p>
   </section>
 
-  <!-- B. Camera -->
-  <section class="panel">
-    <h2>B. Camera view <span class="tag future" id="camtag">NOT CONFIGURED</span></h2>
-    <div id="caminput" style="display:none;padding:6px 10px;border-radius:4px;font-weight:800;margin-bottom:8px"></div>
-    <div class="placeholder" id="camph"><b>NO CAMERA CONNECTED</b>Start <code>vision/viewer.py</code>, then run the dashboard with <code>--camera-viewer http://127.0.0.1:8001</code>. This is not live video.</div>
-    <div id="camwrap" style="display:none">
-      <img id="camimg" alt="annotated camera stream" style="width:100%;border-radius:6px;background:#000;display:block;min-height:120px">
-      <div id="camstat" style="margin-top:8px;font-weight:700"></div>
-      <div id="camdets" style="margin-top:6px"></div>
-      <div id="cammeta" class="note"></div>
-    </div>
-    <div class="note">Object detection only: potential objects for operator review. Not an assessment of harbour damage or of any emergency. Confidence is the model's own score, not verified accuracy. Video and detections come from the vision viewer; the camera is not part of the motor safety chain, and detections never control the motor or rudder.</div>
-  </section>
+  <div class="ops">
+    <!-- Mission control -->
+    <section class="panel sim" aria-labelledby="h-mission">
+      <h2 id="h-mission">Mission <span class="chip sim">Simulated inspection mission</span></h2>
+      <div class="mission-body">
+        <div>
+          <div id="state" class="READY">READY</div>
+          <div id="elapsed"></div>
+        </div>
+        <button id="b-estop" class="estop" aria-keyshortcuts="Escape"><span class="estop-cap">Emergency stop</span><span class="estop-key">Esc</span></button>
+        <div class="buttons">
+          <button id="b-start" class="go">Start mission</button>
+          <button id="b-stop">Stop mission</button>
+          <button id="b-reset">Reset</button>
+        </div>
+      </div>
+      <div id="msg" role="status"></div>
+      <p class="note">READY &rarr; RUNNING &rarr; STOPPED &rarr; (Reset) READY. E-STOP or a fault gives FAULT; only a confirmed Reset returns to READY, and Reset never restarts the motor.</p>
+    </section>
 
-  <!-- C. IMU -->
-  <section class="panel" id="p-imu">
-    <h2>C. IMU <span class="tag sim">SIMULATED</span> <span class="nodata">NO DATA</span></h2>
-    <div class="row"><span>Roll</span><b class="val" id="roll">-</b></div>
-    <div class="row"><span>Pitch</span><b class="val" id="pitch">-</b></div>
-    <div class="row"><span>Yaw rate</span><b class="val" id="yaw">-</b></div>
-    <div class="note">Yaw rate is how fast the vessel is turning (+ = to starboard). It is not a compass heading; no heading is shown.</div>
-  </section>
+    <!-- Safety -->
+    <section class="panel sim" aria-labelledby="h-safety">
+      <h2 id="h-safety">Safety <span class="chip sim">Simulated controller</span></h2>
+      <div class="row"><span>Controller link</span><b id="comms">-</b></div>
+      <div class="row"><span>Emergency stop</span><b id="estop-state">-</b></div>
+      <div class="row"><span>Controller state</span><b id="cfault">-</b></div>
+      <div class="row"><span>Leak sensor</span><b id="leak">-</b></div>
+      <div class="row"><span>Latched fault causes</span><b id="causes">-</b></div>
+      <p class="note">If the control ESP32 hears no laptop heartbeat for 1.0 s it stops the motor itself (COMMLOST). The dashboard shows the link as lost after 1.0 s without telemetry. The real ESP32 must enforce this on its own: the laptop is never the only safety mechanism.</p>
+    </section>
+  </div>
 
-  <!-- D. GPS -->
-  <section class="panel" id="p-gps">
-    <h2>D. GPS navigation <span class="tag sim">SIMULATED POSITION</span> <span class="nodata">NO DATA</span></h2>
-    <div class="row"><span>Latitude</span><b class="val" id="lat">-</b></div>
-    <div class="row"><span>Longitude</span><b class="val" id="lon">-</b></div>
-    <div class="row"><span>GPS validity</span><b class="val" id="gpsvalid">-</b></div>
-    <svg id="track" viewBox="0 0 200 110" style="margin-top:8px"></svg>
-    <div class="note">Track of the simulated position (north up). No map tiles: works offline.</div>
-  </section>
+  <div class="band">
+    <!-- Rudder and motor -->
+    <section class="panel sim" id="p-motor" aria-labelledby="h-motor">
+      <h2 id="h-motor">Rudder and motor <span class="chip sim">Simulated</span> <span class="nodata">No data</span></h2>
+      <svg id="boat" class="drawing" viewBox="0 0 200 172" role="img" aria-label="Top view of the catamaran with the rear rudder angle"></svg>
+      <input type="range" id="rslider" min="-30" max="30" step="5" value="0" aria-label="Rudder command in degrees">
+      <div class="buttons">
+        <button id="r-port" class="small port">Port 15&deg;</button>
+        <button id="r-centre" class="small">Centre</button>
+        <button id="r-star" class="small stbd">Starboard 15&deg;</button>
+      </div>
+      <div style="margin-top:10px">
+        <div class="row"><span>Rudder command</span><b id="rcmd">-</b></div>
+        <div class="row"><span>Rudder angle (servo)</span><b class="val" id="rang">-</b></div>
+        <div class="row"><span>Steering</span><b class="val" id="rdir">-</b></div>
+        <div class="row"><span>DC motor (reported)</span><b class="val" id="motorrep">-</b></div>
+        <div class="row"><span>Motor command</span><b id="motorcmd">STOPPED</b></div>
+      </div>
+      <p class="note">A starboard (+) rudder swings the stern to port and turns the bow to starboard.</p>
+    </section>
 
-  <!-- E. Motor and rudder -->
-  <section class="panel" id="p-motor">
-    <h2>E. Motor and rear rudder <span class="tag sim">SIMULATED</span> <span class="nodata">NO DATA</span></h2>
-    <div class="row"><span>DC motor (reported)</span><b class="val" id="motorrep">-</b></div>
-    <div class="row"><span>Motor command (dashboard)</span><b id="motorcmd">STOPPED</b></div>
-    <div class="row"><span>Rudder command</span><b id="rcmd">-</b></div>
-    <div class="row"><span>Rudder angle (servo)</span><b class="val" id="rang">-</b></div>
-    <div class="row"><span>Steering</span><b class="val" id="rdir">-</b></div>
-    <svg id="boat" viewBox="0 0 200 170" style="margin-top:8px;max-width:260px;margin-left:auto;margin-right:auto"></svg>
-    <input type="range" id="rslider" min="-30" max="30" step="5" value="0">
-    <div class="buttons" style="margin-top:6px">
-      <button id="r-port">Port 15&deg;</button>
-      <button id="r-centre">Centre</button>
-      <button id="r-star">Starboard 15&deg;</button>
-    </div>
-    <div class="note">Rear rudder: starboard (+) swings the stern to port and turns the bow to starboard. Servo movement is simulated.</div>
-  </section>
+    <!-- IMU -->
+    <section class="panel sim" id="p-imu" aria-labelledby="h-imu">
+      <h2 id="h-imu">Motion <span class="chip sim">Simulated IMU</span> <span class="nodata">No data</span></h2>
+      <div class="readout"><span>Roll</span><b class="val" id="roll">-</b></div>
+      <div class="readout"><span>Pitch</span><b class="val" id="pitch">-</b></div>
+      <div class="readout"><span>Yaw rate</span><b class="val" id="yaw">-</b></div>
+      <p class="note">Yaw rate is how fast the vessel turns (+ = to starboard). It is not a compass heading.</p>
+    </section>
 
-  <!-- F. Safety -->
-  <section class="panel">
-    <h2>F. Safety monitoring</h2>
-    <div class="row"><span>Controller communication</span><b id="comms">-</b></div>
-    <div class="row"><span>Emergency stop</span><b id="estop-state">-</b></div>
-    <div class="row"><span>Controller state</span><b id="cfault">-</b></div>
-    <div class="row"><span>Leak sensor</span><b id="leak">-</b></div>
-    <div class="row"><span>Latched fault causes</span><b id="causes">-</b></div>
-    <div class="note">Communication-loss rule (simulated): if the control ESP32 hears no laptop heartbeat for 1.0 s it stops the motor itself and enters COMMLOST. The dashboard shows COMMS LOST after 1.0 s without telemetry. The real ESP32 must enforce this independently: the laptop is never the only safety mechanism.</div>
-  </section>
+    <!-- GPS -->
+    <section class="panel sim" id="p-gps" aria-labelledby="h-gps">
+      <h2 id="h-gps">Position <span class="chip sim">Simulated GPS</span> <span class="nodata">No data</span></h2>
+      <div class="row"><span>Latitude</span><b class="val" id="lat">-</b></div>
+      <div class="row"><span>Longitude</span><b class="val" id="lon">-</b></div>
+      <div class="row"><span>Fix</span><b class="val" id="gpsvalid">-</b></div>
+      <svg id="track" class="drawing" viewBox="0 0 200 110" role="img" aria-label="Track of the simulated position, north up"></svg>
+      <p class="note">North up. No map tiles, so it works offline.</p>
+    </section>
 
-  <!-- Configuration -->
-  <section class="panel">
-    <h2>Configuration <span class="tag future">PLACEHOLDERS, NOT SPECIFICATIONS</span></h2>
-    <div id="cfg"></div>
-    <div class="note">Set in <code>opsdash/config.py</code> or with <code>--config file.json</code>. UNCONFIRMED values wait for the CAD developer and the electrical engineer.</div>
-  </section>
+    <!-- Event log -->
+    <section class="panel" aria-labelledby="h-log">
+      <h2 id="h-log">Event log</h2>
+      <ul id="log"></ul>
+    </section>
+  </div>
 
-  <!-- Scenarios -->
-  <section class="panel">
-    <h2>Demo scenarios <span class="tag sim">SIMULATION ONLY</span></h2>
-    <div class="buttons" style="margin-top:0">
-      <button id="s-tilt">Trigger tilt event</button>
-      <button id="s-cut">Cut comms link</button>
-      <button id="s-restore">Restore comms link</button>
-      <button id="s-leakon">Leak: wet</button>
-      <button id="s-leakoff">Leak: dry</button>
-      <button id="s-gpsoff">GPS fix lost</button>
-      <button id="s-gpson">GPS fix back</button>
-      <button id="s-restart">Restart simulation</button>
-    </div>
-    <div class="note">Scenario 1 Start/Stop &bull; 2 Tilt &bull; 3 Cut comms, wait ~1 s, restore, Reset &bull; 4 E-STOP, Reset &bull; 5 Rudder buttons. "Restart simulation" is a demo harness reset, not a safety reset.</div>
-  </section>
+  <div class="demo">
+    <section class="panel sim" aria-labelledby="h-demo">
+      <h2 id="h-demo">Demo scenarios <span class="chip sim">Simulation only</span></h2>
+      <div class="buttons">
+        <button id="s-tilt" class="small">Trigger tilt event</button>
+        <button id="s-cut" class="small">Cut comms link</button>
+        <button id="s-restore" class="small">Restore comms link</button>
+        <button id="s-leakon" class="small">Leak: wet</button>
+        <button id="s-leakoff" class="small">Leak: dry</button>
+        <button id="s-gpsoff" class="small">GPS fix lost</button>
+        <button id="s-gpson" class="small">GPS fix back</button>
+        <button id="s-restart" class="small">Restart simulation</button>
+      </div>
+      <p class="note">Demo order: start and stop, tilt, cut comms then wait about 1 s, restore and reset, emergency stop and reset, then the rudder buttons. "Restart simulation" resets the demo harness; it is not a safety reset.</p>
+    </section>
 
-  <!-- G. Event log -->
-  <section class="panel">
-    <h2>G. Event log</h2>
-    <div id="log"></div>
-  </section>
+    <section class="panel" aria-labelledby="h-cfg">
+      <h2 id="h-cfg">Configuration <span class="chip plain">Placeholders, not specifications</span></h2>
+      <div id="cfg"></div>
+      <p class="note">Set in <code>opsdash/config.py</code> or with <code>--config file.json</code>. Unconfirmed values wait for the CAD developer and the electrical engineer.</p>
+    </section>
+  </div>
 </main>
 <footer>
-  Software simulation only. Nothing here proves physical safety: motor safety must be enforced independently by the control ESP32. PID steering is not implemented. Camera and hardware mode are future work.
+  Software simulation only, apart from the camera. Nothing here proves physical safety: motor safety must be enforced independently by the control ESP32. PID steering and hardware mode are future work.
 </footer>
+
 <script>
 const $ = id => document.getElementById(id);
-let busy = false, lastState = "READY", draggingRudder = false;
-const f = (v, unit, d = 1) => (v === undefined || v === null) ? "-" : `${Number(v).toFixed(d)} ${unit}`;
+const INK = "#1B2630", RED = "#C8231B", GREEN = "#14794A", BLUE = "#1F5C8A", MAGENTA = "#A3196F";
+let busy = false, lastState = "READY", draggingRudder = false, rudderLimit = 30;
+const f = (v, unit, d = 1) => (v === undefined || v === null) ? "-" : `${Number(v).toFixed(d)}${unit.startsWith("°") ? "" : " "}${unit}`;
+const esc = t => String(t).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
 
 async function send(name, body){
   if (busy && name !== "estop") return;   // guard against double clicks, but never drop E-STOP
@@ -180,13 +289,14 @@ async function send(name, body){
     const r = await fetch("/api/command/" + name, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body || {})});
     const j = await r.json();
     $("msg").textContent = j.message === "ok" ? "" : j.message;
-    $("msg").style.color = j.ok ? "var(--dim)" : "var(--warn)";
+    $("msg").style.color = j.ok ? "var(--ink-2)" : "var(--magenta)";
   } catch (e) { $("msg").textContent = "Cannot reach the dashboard server."; }
   busy = false; refresh();
 }
 $("b-start").onclick = () => send("start");
 $("b-stop").onclick = () => send("stop");
 $("b-estop").onclick = () => send("estop");
+document.addEventListener("keydown", e => { if (e.key === "Escape") send("estop"); });
 $("b-reset").onclick = () => {
   if (lastState === "FAULT" && !confirm("Clear the fault and return to READY?\n\nThe motor stays STOPPED until you press Start again.")) return;
   send("reset", {confirm: lastState === "FAULT"});
@@ -206,22 +316,31 @@ $("s-gpson").onclick = () => send("scenario-gps_on");
 $("s-restart").onclick = () => { if (confirm("Restart the whole simulation (demo only)?")) send("scenario-restart", {confirm: true}); };
 
 function drawBoat(angle){
-  // top view, bow up. Rudder pivots at the stern; + angle swings the blade's trailing edge to starboard (right).
-  const a = (angle || 0) * Math.PI / 180, px = 100, py = 120, len = 34;
-  const ex = px + len * Math.sin(a), ey = py + len * Math.cos(a);
+  // Catamaran top view, bow up. The rear rudder pivots behind the bridge deck; + angle swings the blade's
+  // trailing edge to starboard (right). Port = red, starboard = green, as on navigation lights.
+  angle = angle || 0;
+  const px = 100, py = 120, len = 32, P = t => [px + len * Math.sin(t), py + len * Math.cos(t)];
+  const lim = rudderLimit * Math.PI / 180, [ex, ey] = P(angle * Math.PI / 180);
+  const [lx, ly] = P(-lim), [cx, cy] = P(0), [rx, ry] = P(lim);
+  const blade = angle > 2 ? GREEN : angle < -2 ? RED : INK;
+  const hull = x => `M${x} 10 C${x + 13} 36 ${x + 13} 100 ${x + 10} 128 L${x - 10} 128 C${x - 13} 100 ${x - 13} 36 ${x} 10 Z`;
   $("boat").innerHTML = `
-    <path d="M100 10 C132 40 134 100 128 124 L72 124 C66 100 68 40 100 10 Z" fill="#1d3446" stroke="#4cc3ff" stroke-width="2"/>
-    <text x="100" y="60" text-anchor="middle" font-size="11" fill="#8aa3b5">BOW</text>
-    <text x="100" y="112" text-anchor="middle" font-size="11" fill="#8aa3b5">STERN</text>
-    <line x1="${px}" y1="${py + 4}" x2="${px}" y2="${py + len}" stroke="#3a5266" stroke-width="2" stroke-dasharray="3 3"/>
-    <line x1="${px}" y1="${py}" x2="${ex}" y2="${ey}" stroke="#ffb020" stroke-width="6" stroke-linecap="round"/>
-    <circle cx="${px}" cy="${py}" r="4" fill="#e6f0f6"/>
-    <text x="8" y="160" font-size="11" fill="#8aa3b5">PORT</text>
-    <text x="192" y="160" font-size="11" fill="#8aa3b5" text-anchor="end">STARBOARD</text>`;
+    <path d="M${px} ${py} L${lx} ${ly} A${len} ${len} 0 0 0 ${cx} ${cy} Z" fill="${RED}" opacity=".12"/>
+    <path d="M${px} ${py} L${cx} ${cy} A${len} ${len} 0 0 0 ${rx} ${ry} Z" fill="${GREEN}" opacity=".12"/>
+    <rect x="66" y="46" width="68" height="64" rx="3" fill="#CFE4EC" stroke="${INK}" stroke-width="1.5"/>
+    <rect x="88" y="62" width="24" height="22" rx="2" fill="${BLUE}"/>
+    <path d="${hull(66)}" fill="#FBFCFA" stroke="${INK}" stroke-width="2"/>
+    <path d="${hull(134)}" fill="#FBFCFA" stroke="${INK}" stroke-width="2"/>
+    <line x1="${px}" y1="${py}" x2="${cx}" y2="${cy}" stroke="${INK}" stroke-width="1" stroke-dasharray="3 3" opacity=".5"/>
+    <line x1="${px}" y1="${py}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="${blade}" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="${px}" cy="${py}" r="4" fill="${INK}"/>
+    <text x="100" y="36" text-anchor="middle" font-size="11" fill="#51616D">Bow</text>
+    <text x="6" y="166" font-size="12" font-weight="600" fill="${RED}">Port</text>
+    <text x="194" y="166" font-size="12" font-weight="600" fill="${GREEN}" text-anchor="end">Starboard</text>`;
 }
 
 function drawTrack(pts){
-  if (!pts.length) { $("track").innerHTML = `<text x="100" y="58" text-anchor="middle" font-size="11" fill="#8aa3b5">no position yet</text>`; return; }
+  if (!pts.length) { $("track").innerHTML = `<text x="100" y="58" text-anchor="middle" font-size="11" fill="#51616D">No position yet</text>`; return; }
   const lat0 = pts[0][0], lon0 = pts[0][1], k = Math.cos(lat0 * Math.PI / 180);
   const xy = pts.map(([la, lo]) => [(lo - lon0) * 111320 * k, -(la - lat0) * 111320]);   // metres, north up
   const xs = xy.map(p => p[0]), ys = xy.map(p => p[1]);
@@ -230,59 +349,58 @@ function drawTrack(pts){
   const X = x => 15 + (x - minx) * s, Y = y => 15 + (y - miny) * s;   // y is already north-negative
   const line = xy.map(p => `${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(" ");
   const last = xy[xy.length - 1];
-  $("track").innerHTML = `<polyline points="${line}" fill="none" stroke="#4cc3ff" stroke-width="1.5"/>
-    <circle cx="${X(last[0])}" cy="${Y(last[1])}" r="4" fill="#3ddc84"/>
-    <text x="195" y="12" text-anchor="end" font-size="10" fill="#8aa3b5">N &uarr; &nbsp; ${span.toFixed(0)} m wide</text>`;
+  $("track").innerHTML = `<polyline points="${line}" fill="none" stroke="${BLUE}" stroke-width="1.6" stroke-dasharray="4 2"/>
+    <circle cx="${X(last[0])}" cy="${Y(last[1])}" r="7" fill="none" stroke="${MAGENTA}" stroke-width="1.5"/>
+    <circle cx="${X(last[0])}" cy="${Y(last[1])}" r="2.5" fill="${MAGENTA}"/>
+    <text x="194" y="14" text-anchor="end" font-size="10" fill="#51616D">N &uarr;  ${span.toFixed(0)} m across</text>`;
 }
 
 // ---- camera: render the state the dashboard server validated from vision/viewer.py ----
 let camShown = false;
-const esc = t => String(t).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const CAM_MSG = {
+  CONNECTING: ["<b>Connecting</b>Waiting for the camera viewer.", "warn"],
+  CAMERA_DOWN: ["<b>Camera down</b>The viewer gets no frames. Check that the camera has power and is on the hotspot.", "bad"],
+  VIEWER_UNREACHABLE: ["<b>Viewer not reachable</b>Start <code>vision/viewer.py</code> or check its address. Video and detections are unavailable.", "bad"],
+  STALE: ["<b>Frozen</b>Detections stopped updating. What you see is not live.", "bad"],
+  BAD_RESPONSE: ["<b>Unreadable response</b>The camera viewer sent data the dashboard could not read.", "bad"],
+};
 function renderCamera(c){
   const on = c.configured, st = c.status;
-  $("camph").style.display = on ? "none" : ""; $("camwrap").style.display = on ? "" : "none";
-  $("camtag").textContent = on ? "VIEWER " + c.viewer_url : "NOT CONFIGURED";
+  $("camtag").textContent = on ? "Viewer " + c.viewer_url.replace(/^https?:\/\//, "") : "Not configured";
   const inp = $("caminput");
-  if (!on || !c.input) { inp.style.display = "none"; }
-  else {
-    inp.style.display = "";
+  inp.hidden = !(on && c.input);
+  if (!inp.hidden) {
     const real = c.input === "REAL CAMERA";
-    inp.textContent = real ? "REAL CAMERA (ESP32 #1): source of the video, not proof the detections are correct"
-                           : `TEST INPUT (${c.src}): NOT THE BOAT CAMERA`;
-    inp.style.background = real ? "var(--ok)" : "var(--warn)"; inp.style.color = "#000";
+    inp.className = "input-badge " + (real ? "real" : "test");
+    inp.textContent = real ? "Live from the boat camera (ESP32 #1). This tells you where the video comes from, not that the detections are right."
+                           : `Test input (${c.src}): this is not the boat camera`;
   }
-  if (!on) return;
-  const showVideo = st === "OK" || st === "STALE";
+  $("camph").hidden = on;
+  const showVideo = on && (st === "OK" || st === "STALE");
   if (showVideo && !camShown) { $("camimg").src = ""; $("camimg").src = c.stream_url; }   // (re)connect the stream
   if (!showVideo && camShown) $("camimg").src = "";
   camShown = showVideo;
   $("camimg").style.display = showVideo ? "block" : "none";
   $("camimg").style.opacity = st === "STALE" ? 0.35 : 1;
-  const msgs = {
-    OK: ["", ""],
-    CONNECTING: ["Connecting to the camera viewer...", "warn"],
-    CAMERA_DOWN: ["CAMERA DOWN: the viewer receives no frames. Detections unavailable.", "bad"],
-    VIEWER_UNREACHABLE: ["CAMERA VIEWER NOT REACHABLE. Video and detections unavailable.", "bad"],
-    STALE: ["FROZEN: detections are not updating. Not live data.", "bad"],
-    BAD_RESPONSE: ["Camera viewer sent an unreadable response. Detections unavailable.", "bad"],
-  };
-  const [text, cls] = msgs[st] || ["", ""];
-  $("camstat").textContent = text; $("camstat").className = cls;
-  const dets = c.detections || [];
-  $("camdets").innerHTML = st !== "OK" ? "" : dets.length
-    ? dets.map(d => `<div class="${d.cls === "person" ? "bad" : "warn"}">${esc(d.label)} &mdash; ${d.conf_pct}% <span class="note">(model score)</span></div>`).join("")
-      + `<div class="note">${esc(c.notice)}</div>`
-    : `<div class="note">No objects detected in the current frame.</div>`;
+  const [text, cls] = (on && CAM_MSG[st]) || ["", ""];
+  $("camstat").hidden = !text; $("camstat").innerHTML = text; $("camstat").className = "frame-msg " + cls;
+  const dets = on && st === "OK" ? (c.detections || []) : null;
+  $("camdets").innerHTML = !dets ? "" : dets.length
+    ? `<h3>Detections <span>(model score, not verified)</span></h3><ul class="dets">` + dets.map(d => {
+        const pct = Math.max(0, Math.min(100, Number(d.conf_pct) || 0));
+        return `<li class="${d.cls === "person" ? "person" : ""}"><span>${esc(d.label)}</span><span class="bar"><i style="width:${pct}%"></i></span><b>${pct}%</b></li>`;
+      }).join("") + `</ul><p class="note">${esc(c.notice)}</p>`
+    : `<p class="empty">Nothing detected in the current frame.</p>`;
   const meta = [];
-  if (st === "OK") { if (c.fps !== null) meta.push(`${c.fps} detections/s`); if (c.infer_ms !== null) meta.push(`${c.infer_ms} ms inference`); if (c.model) meta.push(esc(c.model)); }
-  if (c.ignored) meta.push(`${c.ignored} unreadable detection(s) ignored`);
-  $("cammeta").innerHTML = meta.join(" | ");
+  if (on && st === "OK") { if (c.fps !== null) meta.push(["Rate", `${esc(c.fps)}/s`]); if (c.infer_ms !== null) meta.push(["Inference", `${esc(c.infer_ms)} ms`]); if (c.model) meta.push(["Model", esc(c.model)]); }
+  if (on && c.ignored) meta.push(["Ignored", `${esc(c.ignored)} unreadable`]);
+  $("cammeta").innerHTML = meta.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
 }
 
 async function refresh(){
   let s;
   try { s = await (await fetch("/api/state")).json(); }
-  catch (e) { $("banner").style.display = "block"; $("banner").textContent = "Dashboard cannot reach the server"; return; }
+  catch (e) { $("banner").style.display = "block"; $("banner").textContent = "The dashboard cannot reach its server. Check that run_operator.py is still running."; return; }
   lastState = s.state;
   renderCamera(s.camera);
   const t = s.telemetry, stale = s.telemetry_stale;
@@ -291,50 +409,53 @@ async function refresh(){
   $("b-start").disabled = !s.allowed.start; $("b-stop").disabled = !s.allowed.stop; $("b-reset").disabled = !s.allowed.reset;
   const fault = s.state === "FAULT";
   $("banner").style.display = fault ? "block" : "none";
-  $("banner").textContent = fault ? "FAULT: " + s.fault_causes.join(", ") + " - motor command STOPPED. Deliberate reset required." : "";
+  $("banner").textContent = fault ? "FAULT: " + s.fault_causes.join(", ") + ". Motor command STOPPED. A deliberate reset is required." : "";
   $("warnbar").style.display = s.warnings.length ? "block" : "none";
   $("warnbar").textContent = s.warnings.join("  |  ");
   ["p-imu", "p-gps", "p-motor"].forEach(id => $(id).classList.toggle("stale", !!stale));
 
-  $("roll").textContent = f(s.imu.roll, "deg");
-  $("pitch").textContent = f(s.imu.pitch, "deg");
-  $("yaw").textContent = f(s.imu.yaw_rate, "deg/s");
+  $("roll").textContent = f(s.imu.roll, "°");
+  $("pitch").textContent = f(s.imu.pitch, "°");
+  $("yaw").textContent = f(s.imu.yaw_rate, "°/s");
   $("lat").textContent = t && t.lat !== null ? t.lat.toFixed(6) : "-";
   $("lon").textContent = t && t.lon !== null ? t.lon.toFixed(6) : "-";
-  $("gpsvalid").textContent = t ? (t.fix ? "VALID (simulated)" : "NO FIX") : "-";
+  $("gpsvalid").textContent = t ? (t.fix ? "Valid (simulated)" : "NO FIX") : "-";
+  $("gpsvalid").className = "val" + (t && !t.fix ? " bad" : "");
   drawTrack(s.track);
 
-  $("motorrep").textContent = t ? (t.thr > 0 ? `RUNNING, throttle ${t.thr.toFixed(2)}` : "STOPPED") : "-";
+  rudderLimit = s.config.rudder_limit_deg;
+  $("motorrep").textContent = t ? (t.thr > 0 ? `Running, ${t.thr.toFixed(2)}` : "Stopped") : "-";
   $("motorcmd").textContent = s.motor_command;
-  $("rcmd").textContent = f(s.rudder_command, "deg", 0);
+  $("rcmd").textContent = f(s.rudder_command, "°", 0);
   const ang = t && t.rud !== null ? t.rud : 0;
-  $("rang").textContent = t ? f(ang, "deg") : "-";
-  $("rdir").textContent = !t ? "-" : ang > 2 ? "STARBOARD (bow turns right)" : ang < -2 ? "PORT (bow turns left)" : "CENTRE";
+  $("rang").textContent = t ? f(ang, "°") : "-";
+  $("rdir").textContent = !t ? "-" : ang > 2 ? "Starboard" : ang < -2 ? "Port" : "Centre";
+  $("rdir").className = "val" + (t && ang > 2 ? " ok" : t && ang < -2 ? " bad" : "");
   drawBoat(ang);
-  const lim = s.config.rudder_limit_deg;
-  $("rslider").min = -lim; $("rslider").max = lim;
+  $("rslider").min = -rudderLimit; $("rslider").max = rudderLimit;
   if (!draggingRudder) $("rslider").value = s.rudder_command;
+  const unconfirmed = key => key && s.config.unconfirmed.includes(key) ? ' <span class="chip sim">Unconfirmed</span>' : "";
   $("cfg").innerHTML = [
-    ["Rudder limit", `+/-${lim} deg`, "rudder_limit_deg"],
+    ["Rudder limit", `&plusmn;${rudderLimit}&deg;`, "rudder_limit_deg"],
     ["Mission throttle", s.config.throttle_run, "throttle_run"],
     ["Max throttle", s.config.throttle_max, "throttle_max"],
-    ["IMU mounting", `roll ${s.config.imu_roll_sign > 0 ? "+" : "-"}, pitch ${s.config.imu_pitch_sign > 0 ? "+" : "-"}, yaw ${s.config.imu_yaw_sign > 0 ? "+" : "-"}${s.config.imu_swap_roll_pitch ? ", roll/pitch swapped" : ""}`, "imu_yaw_sign"],
+    ["IMU mounting", `roll ${s.config.imu_roll_sign > 0 ? "+" : "-"}, pitch ${s.config.imu_pitch_sign > 0 ? "+" : "-"}, yaw ${s.config.imu_yaw_sign > 0 ? "+" : "-"}${s.config.imu_swap_roll_pitch ? ", swapped" : ""}`, "imu_yaw_sign"],
     ["Rudder centres on stop", s.config.rudder_centre_on_stop ? "yes (proposed)" : "no", "rudder_centre_on_stop"],
-    ["Tilt warning", `${s.config.tilt_warning_deg} deg`, null],
-  ].map(([k, v, key]) => `<div class="row"><span>${k}</span><b>${v} ${key && s.config.unconfirmed.includes(key) ? '<span class="tag future">UNCONFIRMED</span>' : ''}</b></div>`).join("");
+    ["Tilt warning", `${s.config.tilt_warning_deg}&deg;`, null],
+  ].map(([k, v, key]) => `<div class="row"><span>${k}</span><b>${v}${unconfirmed(key)}</b></div>`).join("");
 
   const comms = $("comms");
-  comms.textContent = s.comms === "OK" ? "OK" : s.comms === "WAITING" ? "waiting for telemetry" : `LOST${s.link_cut ? " (link cut by simulation)" : ""}`;
+  comms.textContent = s.comms === "OK" ? "OK" : s.comms === "WAITING" ? "Waiting for telemetry" : `LOST${s.link_cut ? " (cut by simulation)" : ""}`;
   comms.className = s.comms === "OK" ? "ok" : "bad";
   const estop = s.fault_causes.includes("E-STOP");
-  $("estop-state").textContent = estop ? "ACTIVE (latched)" : "not active"; $("estop-state").className = estop ? "fault" : "";
+  $("estop-state").textContent = estop ? "ACTIVE (latched)" : "Not active"; $("estop-state").className = estop ? "fault" : "";
   $("cfault").textContent = s.controller_state; $("cfault").className = s.controller_state === "OK" ? "ok" : "fault";
   const leak = !!(t && t.leak);
-  $("leak").textContent = !t ? "-" : leak ? "WET" : "dry (simulated)"; $("leak").className = leak ? "fault" : "";
-  $("causes").textContent = s.fault_causes.length ? s.fault_causes.join(", ") : "none";
+  $("leak").textContent = !t ? "-" : leak ? "WET" : "Dry (simulated)"; $("leak").className = leak ? "fault" : "";
+  $("causes").textContent = s.fault_causes.length ? s.fault_causes.join(", ") : "None";
 
   $("log").innerHTML = s.events.slice().reverse().map(e =>
-    `<div class="${e.level === "fault" ? "fault" : e.level === "warn" ? "warn" : ""}">${new Date(e.time * 1000).toLocaleTimeString()}  ${e.text.replace(/</g, "&lt;")}</div>`).join("");
+    `<li class="${e.level === "fault" ? "fault" : e.level === "warn" ? "warn" : ""}"><time>${new Date(e.time * 1000).toLocaleTimeString()}</time><span>${esc(e.text)}</span></li>`).join("");
 }
 setInterval(refresh, 250); refresh();
 </script>

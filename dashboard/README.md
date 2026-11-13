@@ -5,7 +5,7 @@ A local web dashboard for the SeaGuardian harbour-inspection demonstrator. It ru
 ```bash
 python run_operator.py
 ```
-Open http://127.0.0.1:8000. Tests: `python -m unittest discover -s tests -v`.
+Open http://127.0.0.1:8000. Press **Esc** anywhere on the page for an emergency stop. Tests: `python -m unittest discover -s tests -v`.
 
 **Simulation only.** What the dashboard shows is simulated and labelled SIMULATED. It demonstrates intended logic; it is **not** evidence of physical safety. The real control ESP32 must enforce motor safety independently, and the laptop is never the only safety mechanism.
 

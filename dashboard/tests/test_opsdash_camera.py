@@ -323,7 +323,7 @@ class T1DashboardStartsAndT2PanelOverHttp(unittest.TestCase):
 
     def test_t1_page_and_state_are_served_and_page_has_the_camera_panel(self):
         page = urllib.request.urlopen(self.base + "/", timeout=2).read().decode()
-        self.assertIn("SEAGUARDIAN", page)
+        self.assertIn("seaguardian", page.lower())
         self.assertIn('id="camimg"', page)
         self.assertEqual(self.state()["mode"], "SIMULATION")
 
