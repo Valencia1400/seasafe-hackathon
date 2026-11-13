@@ -85,6 +85,7 @@ List the assumptions and what physical test would confirm it. Label it as an est
 ```
 
 ### 4.2 Electronics group (Persons 2 and 4)
+Person 4: the simplest prompts, step by step, are in [beginners-guide.md](beginners-guide.md).
 **Prompt E-1 - architecture and wiring (Person 2)**
 ```
 I am the electronics lead. Parts we actually have: [ESP32 board model, IMU model, pressure sensor model, leak sensor, motor driver model, motors, battery, Raspberry Pi model].
@@ -119,14 +120,14 @@ run a SIMULATED inspection mission (states: IDLE -> TRANSIT -> INSPECTING -> RET
 stop the mission and command motors 0 on any fault event, and expose state + an event log to a web dashboard.
 Use only pyserial plus one small web framework. Include a flag to run against a simulator instead of real hardware. Keep it in few files.
 ```
-**Prompt S-2 - ESP32 simulator (Person 5)**
+**Prompt S-2 - ESP32 simulator** *(DONE - already built in dashboard/seaguardian/sim_esp32.py; Person 5: use [beginners-guide.md](beginners-guide.md) instead)*
 ```
 Write a small Python simulator that pretends to be the SeaGuardian ESP32, speaking this protocol: [paste the "Messages" and "ESP32 safety state machine" sections of docs/architecture.md].
 It should emit realistic-looking IMU, pressure and leak messages, and let me trigger faults from the keyboard: tilt, leak, leak, E-stop, and "Pi stops sending heartbeats".
 It must implement the same safety rules as the real ESP32 (1.0 s heartbeat timeout -> motors 0, COMMLOST) so we can test the Pi software without hardware.
 Every message must make clear it is simulated.
 ```
-**Prompt S-3 - operator dashboard (Person 5)**
+**Prompt S-3 - operator dashboard** *(DONE - already built in dashboard/; Person 5: use [beginners-guide.md](beginners-guide.md) instead)*
 ```
 Build a single-page operator dashboard for SeaGuardian served by the Pi program. Show: mission state and a Start/Abort button,
 a simple map-like view of the SIMULATED route and position, live roll/pitch, pressure, leak status, motor outputs, link status (OK / TIMEOUT),

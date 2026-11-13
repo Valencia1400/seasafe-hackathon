@@ -29,11 +29,13 @@ Read your own section, then start. Raise a blocker at the table after 30 minutes
 3. Motor output on the bench: LEDs or a motor driver with no propeller. **Nothing powered near water.**
 
 ## Person 4 - Verification
+**New to tech? Start with [beginners-guide.md](beginners-guide.md)** - step-by-step tasks and simple AI prompts.
 1. Turn each requirement into a test in [tests/test-plan.md](../tests/test-plan.md) (procedure, how to measure, pass criterion).
 2. Run the tests as soon as a function works: five repeats where practicable. Record every trial, also failures, in [tests/test-results.md](../tests/test-results.md).
 3. Film at least one trial per test.
 
 ## Person 5 - Research, AI log, pitch
+**New to tech? Start with [beginners-guide.md](beginners-guide.md)** - step-by-step tasks and simple AI prompts.
 1. Research how harbour inspection is done today and what exists (Saab Autonomous Ocean Core, others) - **sources for every claim** in [research.md](research.md).
 2. Keep the curated AI log in [ai-process.md](ai-process.md): especially one AI mistake and how we found and fixed it.
 3. Draft the pitch in [presentation/pitch-outline.md](../presentation/pitch-outline.md); keep the "with more time/money we would..." list.
