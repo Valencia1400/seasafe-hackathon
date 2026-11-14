@@ -1,6 +1,6 @@
 """Camera integration tests (T1-T9). ALL of these use MOCK viewer responses, never real camera hardware
 or the real YOLO viewer: they prove the dashboard's handling of vision/INTEGRATION.md messages, not
-that the physical camera works. (T10, motor-safety regression, is the existing scenario test file.)
+that the physical camera works. (The boat link has its own file, test_opsdash_boatlink.py.)
 
 Run from the dashboard folder:  python -m unittest discover -s tests -v
 """
@@ -18,9 +18,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from opsdash import camera as cam  # noqa: E402
-from opsdash import mission as m  # noqa: E402
 from opsdash.config import Config  # noqa: E402
-from opsdash.console import OperatorConsole  # noqa: E402
 from opsdash.server import Dashboard, make_handler  # noqa: E402
 
 # The example message from vision/INTEGRATION.md section 4
@@ -211,57 +209,6 @@ class T8StaleData(unittest.TestCase):
         self.assertEqual(s["status"], "OK")
 
 
-class T9DashboardWorksWithoutOrDespiteTheCamera(unittest.TestCase):
-    """The camera must never affect the mission, motor or rudder (and vice versa)."""
-
-    def _run_mission(self, camera):
-        now = [0.0]
-        c = OperatorConsole(now[0], wall=lambda: now[0], camera=camera)
-        for _ in range(10):
-            now[0] += 0.05
-            c.tick(now[0])
-        self.assertTrue(c.start(now[0])[0])
-        c.set_rudder(now[0], 10)
-        for _ in range(40):
-            now[0] += 0.05
-            c.tick(now[0])
-        return c, now[0]
-
-    def test_mission_runs_without_any_viewer(self):
-        c, now = self._run_mission(None)
-        self.assertEqual(c.mission.state, m.RUNNING)
-        self.assertGreater(c.telemetry["thr"], 0)
-        self.assertEqual(c.snapshot(now)["camera"]["status"], "NOT_CONFIGURED")
-
-    def test_dead_viewer_gives_a_camera_warning_but_no_fault_and_motor_keeps_running(self):
-        t = Mon()
-        t.poll(urllib.error.URLError("refused"))
-        c, now = self._run_mission(t.m)
-        snap = c.snapshot(now)
-        self.assertEqual(snap["state"], m.RUNNING)
-        self.assertNotEqual(snap["state"], m.FAULT)
-        self.assertGreater(c.telemetry["thr"], 0)
-        self.assertTrue(any(w.startswith("CAMERA:") and "motor control unaffected" in w for w in snap["warnings"]))
-
-    def test_person_detection_never_changes_motor_or_rudder(self):
-        t = Mon()
-        t.poll({**SAMPLE, "dets": [{"cls": "person", "conf": 0.95, "box": [0, 0, 1, 1]}]})
-        c, now = self._run_mission(t.m)
-        self.assertEqual(c.mission.state, m.RUNNING)
-        self.assertAlmostEqual(c.telemetry["thr"], c.cfg.throttle_run, places=2)
-        self.assertEqual(c.rud_cmd, 10)
-
-    def test_control_comms_loss_still_faults_while_camera_is_fine(self):
-        t = Mon()
-        t.poll()
-        c, now = self._run_mission(t.m)
-        c.scenario(now, "link_cut")
-        for _ in range(30):
-            now += 0.05
-            c.tick(now)
-        self.assertEqual(c.mission.state, m.FAULT)
-        self.assertEqual(c.snapshot(now)["camera"]["status"], "OK")
-
 
 class ConfigGuards(unittest.TestCase):
     def test_viewer_url_must_be_the_viewer_never_the_esp32_stream(self):
@@ -314,14 +261,12 @@ class T1DashboardStartsAndT2PanelOverHttp(unittest.TestCase):
         cls.viewer = MockViewer()
         cls.dash = Dashboard(Config(camera_viewer_url=cls.viewer.url))
         cls.dash.camera.start()
-        threading.Thread(target=cls.dash.loop, daemon=True).start()
         cls.server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(cls.dash))
         threading.Thread(target=cls.server.serve_forever, daemon=True).start()
         cls.base = f"http://127.0.0.1:{cls.server.server_address[1]}"
 
     @classmethod
     def tearDownClass(cls):
-        cls.dash.running = False
         cls.dash.camera.stop()
         cls.server.shutdown()
         cls.server.server_close()
@@ -342,7 +287,7 @@ class T1DashboardStartsAndT2PanelOverHttp(unittest.TestCase):
         page = urllib.request.urlopen(self.base + "/", timeout=2).read().decode()
         self.assertIn("seaguardian", page.lower())
         self.assertIn('id="camimg"', page)
-        self.assertEqual(self.state()["mode"], "SIMULATION")
+        self.assertEqual(self.state()["mode"], "HARDWARE")
 
     def test_t2_state_exposes_the_viewer_stream_url_and_detections(self):
         s = self.wait_for("OK")
@@ -359,7 +304,7 @@ class T1DashboardStartsAndT2PanelOverHttp(unittest.TestCase):
         self.viewer.reply = {**SAMPLE, "src": "webcam", "seq": 5000}
         s = self.wait_for("OK")
         self.assertEqual(s["camera"]["input"], "TEST INPUT")
-        self.assertEqual(s["state"], "READY")      # the mission side was never disturbed
+        self.assertFalse(s["estop"])               # the boat side was never disturbed
 
 
 if __name__ == "__main__":

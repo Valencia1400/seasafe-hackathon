@@ -5,7 +5,7 @@ Data flow (see vision/INTEGRATION.md):
                                                 --/detections--> this module (detections + health)
 ONLY the viewer opens the ESP32 stream (it serves one client at a time); the dashboard never does.
 YOLO inference runs in the viewer, never here. Polling runs on its own thread, so a slow or dead
-viewer cannot block the dashboard or the simulated control loop.
+viewer cannot block the dashboard or the link to the boat.
 
 This module is deliberately separate from the motor-control path: a camera problem produces a
 camera warning only. Detections never change the mission state, the motor or the rudder.

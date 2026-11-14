@@ -11,7 +11,7 @@ Protocol and safety rules: [docs/architecture.md](../docs/architecture.md). Requ
 6. Leak input (R7) - a real leak sensor or two wires/a button as a clearly labelled test input.
 
 ## Control firmware in use: `firmware/seaguardian_revC/Main/Main.ino`
-ESP32 DevKit (ESP32-WROOM-32D), L298N, SG90 servo, MPU6050, NEO-6M. It connects to the laptop dashboard over Wi-Fi (`dashboard/README.md`, "Real boat ESP32"). Pinout, libraries, board settings and the bench test procedure are in [its README](firmware/seaguardian_revC/README.md). Wi-Fi name, password and the laptop address go in `Main/secrets.h` (copy `secrets.example.h`; git-ignored). **Status: compiles (ESP32 core 3.3.12), 79 PC unit tests pass, not yet run on the board.**
+ESP32 DevKit (ESP32-WROOM-32D), L298N, SG90 servo, MPU6050, NEO-6M. It connects to the laptop dashboard over Wi-Fi (`dashboard/README.md`, "Real boat ESP32"). Pinout, libraries, board settings and the bench test procedure are in [its README](firmware/seaguardian_revC/README.md). Wi-Fi name, password and the laptop address go in `Main/secrets.h` (copy `secrets.example.h`; git-ignored). **Status: compiles (ESP32 core 3.3.12), 79 PC unit tests pass; on the board it connects to the dashboard and sends live IMU data (14 Nov). Motors and servo not yet bench-tested.**
 
 | GPIO | Connects to |
 |---|---|

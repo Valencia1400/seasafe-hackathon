@@ -1,1 +1,1 @@
-"""SeaGuardian operator dashboard (simulation mode)."""
+"""SeaGuardian operator dashboard."""

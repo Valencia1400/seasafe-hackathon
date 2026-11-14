@@ -209,9 +209,37 @@ class BoatLinkTest(unittest.TestCase):
         self.assertFalse(self.get("/api/boat")["connected"])
         self.assertIsNone(self.get("/api/boat")["telemetry"])
 
-    def test_page_still_served_and_simulation_untouched(self):
+    def test_state_has_no_simulated_data_and_warns_without_the_esp32(self):
+        s = self.get("/api/state")
+        self.assertEqual(s["mode"], "HARDWARE")
+        self.assertIn("BOAT ESP32 NOT CONNECTED", s["warnings"])
+        self.assertNotIn("telemetry", s)
         self.connect()
-        self.assertEqual(self.get("/api/state")["mode"], "SIMULATION")
+        self.assertNotIn("BOAT ESP32 NOT CONNECTED", self.get("/api/state")["warnings"])
+
+    def test_estop_without_a_link_is_accepted_and_logged(self):
+        r = self.post("estop")
+        self.assertTrue(r["ok"])
+        self.assertIn("not connected", r["message"])
+        self.assertTrue(any("could not reach the boat" in e["text"] for e in self.get("/api/state")["events"]))
+
+    def test_release_needs_confirmation(self):
+        self.connect()
+        self.assertFalse(self.post("reset")["ok"])
+        self.assertEqual([c for c in self.esp.recv_cmds(0.2) if c["cmd"] != "ping"], [])
+
+    def test_state_changes_from_the_boat_are_logged_once_and_shown(self):
+        self.connect()
+        for _ in range(3):
+            self.esp.send(telemetry(estop=True, roll=45.0))
+        time.sleep(0.2)
+        s = self.get("/api/state")
+        self.assertTrue(s["estop"])
+        self.assertIn("EMERGENCY STOP ACTIVE", s["warnings"])
+        self.assertIn("TILT WARNING: roll or pitch beyond the limit", s["warnings"])
+        texts = [e["text"] for e in s["events"]]
+        self.assertEqual(sum("EMERGENCY STOP latched" in t for t in texts), 1)
+        self.assertEqual(sum(t.startswith("TILT WARNING") for t in texts), 1)
 
 
 if __name__ == "__main__" and len(sys.argv) == 3:

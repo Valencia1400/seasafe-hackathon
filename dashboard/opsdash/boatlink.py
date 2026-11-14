@@ -62,10 +62,11 @@ def _num(body, key, lo, hi):
 
 
 class BoatLink:
-    def __init__(self, config=None, log=None, clock=time.monotonic):
+    def __init__(self, config=None, log=None, clock=time.monotonic, on_telemetry=None):
         self.cfg = config
         self._log = log or (lambda text, level="info": None)
         self._clock = clock
+        self._on_telemetry = on_telemetry or (lambda msg: None)
         self._lock = threading.Lock()       # state below
         self._tx = threading.Lock()         # one writer on the socket at a time
         self._sock = None
@@ -94,7 +95,7 @@ class BoatLink:
                 old.close()
             except OSError:
                 pass
-        self._log(f"Boat ESP32 connected from {handler.client_address[0]} (REAL hardware)")
+        self._log(f"Boat ESP32 connected from {handler.client_address[0]}")
 
         def read(n):
             data = handler.rfile.read(n)
@@ -140,6 +141,8 @@ class BoatLink:
                 self.hello = msg
             elif kind == "error":
                 self.last_error = f"{msg.get('cmd')}: {msg.get('msg')}"
+        if kind == "telemetry":
+            self._on_telemetry(msg)
         if kind == "error":
             self._log(f"Boat ESP32 rejected '{msg.get('cmd')}': {msg.get('msg')}", "warn")
 

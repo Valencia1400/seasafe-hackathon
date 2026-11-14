@@ -26,7 +26,7 @@ Not changed, but know about it: the OTA password is in `Config.h` and the WebSoc
 ## 1. Before you flash
 
 1. Copy `Main/secrets.example.h` to `Main/secrets.h` and set `WIFI_SSID`, `WIFI_PASSWORD` (2.4 GHz only) and `WS_HOST`.
-2. `WS_HOST` is the address the dashboard prints when started with `python run_operator.py --host 0.0.0.0`
+2. `WS_HOST` is the address the dashboard prints when started with `python run_operator.py`
    (`dashboard/README.md`). `WS_PORT` 8000 and `WS_PATH` `/ws` in `Config.h` already match the dashboard.
 3. The network must allow devices to talk to each other. Some guest networks block that; a phone hotspot does not.
 

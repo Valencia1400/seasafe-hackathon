@@ -1,12 +1,14 @@
-"""Tiny local web server for the operator dashboard (Python standard library only).
+"""Local web server for the operator dashboard (Python standard library only).
 
-The mission, GPS and leak data are still SIMULATED. The real control ESP32 (motors,
-servo, IMU) connects to ws://<this laptop>:<port>/ws and is handled by boatlink.py.
+One port serves three things:
+  GET  /            the page
+  GET  /api/...     state for the page, POST /api/command/... operator commands
+  GET  /ws          WebSocket server for the control ESP32 (boatlink.py): telemetry in, commands out
+There is no simulated data: without the ESP32 the page shows "not connected".
 """
 import json
 import socket
 import threading
-import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -16,67 +18,45 @@ from .config import Config
 from .console import OperatorConsole
 
 STATIC = Path(__file__).resolve().parent / "static"
-TICK_S = 0.05
 
 
 class Dashboard:
-    """Runs the console on a background thread and applies operator commands (one lock)."""
+    """Ties the boat link, the camera monitor and the event log together and applies operator commands."""
 
     def __init__(self, config=None):
-        self.lock = threading.Lock()
         config = config or Config()
         self.camera = CameraMonitor(config.camera_viewer_url, log=self._log_event)
-        self.console = OperatorConsole(time.monotonic(), config=config, camera=self.camera)
-        self.boat = BoatLink(config, log=self._log_event)   # real control ESP32, separate from the simulation
-        self.running = True
+        self.boat = BoatLink(config, log=self._log_event, on_telemetry=self._on_telemetry)
+        self.console = OperatorConsole(config=config, camera=self.camera, boat=self.boat)
 
     def _log_event(self, text, level="info"):
-        with self.lock:
-            self.console.mission.log(text, level)
+        self.console.log(text, level)
 
-    def loop(self):
-        while self.running:
-            with self.lock:
-                self.console.tick(time.monotonic())
-            time.sleep(TICK_S)
+    def _on_telemetry(self, msg):
+        self.console.on_telemetry(msg)
 
     def command(self, name, body):
-        now, c = time.monotonic(), self.console
-        confirmed = body.get("confirm") is True
-        if name in ("camera-on", "camera-off"):   # outside self.lock: the camera logs through _log_event
+        if name in ("camera-on", "camera-off"):
             ok, msg = self.camera.set_enabled(name == "camera-on")
-            return {"ok": ok, "message": msg}
-        if name.startswith("boat-"):               # outside self.lock: the boat link logs through _log_event
-            ok, msg = self.boat.command(name[len("boat-"):], body)
-            return {"ok": ok, "message": msg}
-        if name == "estop":                        # the dashboard E-STOP also latches the real boat's emergency stop
-            self.boat.command("estop", {})
-        with self.lock:
-            if name == "start":
-                ok, msg = c.start(now)
-            elif name == "stop":
-                ok, msg = c.stop(now)
-            elif name == "estop":
-                ok, msg = c.estop(now)
-            elif name == "reset":
-                ok, msg = c.reset(now, confirmed)
-                release_boat = ok
-            elif name == "rudder":
-                try:
-                    ok, msg = c.set_rudder(now, body.get("deg", 0))
-                except (TypeError, ValueError):
-                    ok, msg = False, "Invalid rudder angle."
-            elif name.startswith("scenario-"):
-                ok, msg = c.scenario(now, name[len("scenario-"):], confirmed)
+        elif name == "estop":
+            self.console.log("EMERGENCY STOP pressed on the dashboard", "fault")
+            ok, msg = self.boat.command("estop", {})
+            if not ok:
+                ok, msg = True, "Boat ESP32 is not connected: its own firmware stops the motors when the link is down."
+                self.console.log("E-STOP could not reach the boat (not connected); the firmware stops the motors on link loss", "warn")
+        elif name == "reset":
+            if body.get("confirm") is not True:
+                ok, msg = False, "Releasing the emergency stop needs confirmation."
             else:
-                ok, msg = False, f"Unknown command {name}"
-        if name == "reset" and release_boat:       # still disarmed afterwards: Arm must be pressed again
-            self.boat.command("estop_reset", {})
+                ok, msg = self.boat.command("estop_reset", {})     # still disarmed afterwards: Arm must be pressed again
+        elif name.startswith("boat-"):
+            ok, msg = self.boat.command(name[len("boat-"):], body)
+        else:
+            ok, msg = False, f"Unknown command {name}"
         return {"ok": ok, "message": msg}
 
     def snapshot(self):
-        with self.lock:
-            return self.console.snapshot(time.monotonic())
+        return self.console.snapshot()
 
 
 def make_handler(dash):
@@ -135,23 +115,22 @@ def lan_address():
         s.close()
 
 
-def serve(host="127.0.0.1", port=8000, config=None):
+def serve(host="0.0.0.0", port=8000, config=None):
     dash = Dashboard(config)
-    threading.Thread(target=dash.loop, daemon=True).start()
     dash.camera.start()          # own thread: a slow or dead viewer cannot block the dashboard
     threading.Thread(target=dash.boat.keepalive_loop, daemon=True).start()
     server = ThreadingHTTPServer((host, port), make_handler(dash))
-    print(f"SeaGuardian operator dashboard on http://{host}:{port}  - Ctrl+C to stop")
+    print(f"SeaGuardian operator dashboard: open http://127.0.0.1:{port}  - Ctrl+C to stop", flush=True)
     if host in ("127.0.0.1", "localhost"):
-        print("Boat ESP32: cannot connect to this address. Restart with --host 0.0.0.0 to use the real boat.")
+        print("Boat ESP32: cannot connect to this address. Use --host 0.0.0.0 (the default).", flush=True)
     else:
-        print(f"Boat ESP32: set WS_HOST \"{lan_address()}\" and WS_PORT {port} in the firmware's secrets.h / Config.h")
+        print(f'Boat ESP32 WebSocket server: ws://{lan_address()}:{port}/ws   (firmware: WS_HOST "{lan_address()}", '
+              f'WS_PORT {port}, WS_PATH "/ws")', flush=True)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
         pass
     finally:
-        dash.running = False
         dash.camera.stop()
         dash.boat.stop()
         server.server_close()

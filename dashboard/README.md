@@ -1,55 +1,32 @@
-# SeaGuardian operator dashboard (laptop) - Owner: Person 3
+# SeaGuardian operator dashboard (laptop)
 
-A local web dashboard for the SeaGuardian harbour-inspection demonstrator. It runs **without any hardware**: the control ESP32 is simulated. Pure Python standard library, no internet, no installs.
+A local web page plus a WebSocket server for the boat's control ESP32. Pure Python standard library, no installs. **Nothing is simulated:** every value comes from the real ESP32 or the camera, and without them the page says "not connected".
 
 ```bash
-python run_operator.py
+python run_operator.py                                           # page + WebSocket server on port 8000
+python run_operator.py --camera-viewer http://127.0.0.1:8001     # with the camera (start vision/viewer.py first)
 ```
 Open http://127.0.0.1:8000. Press **Esc** anywhere on the page for an emergency stop. Tests: `python -m unittest discover -s tests -v`.
 
-**Simulation only.** What the dashboard shows is simulated and labelled SIMULATED. It demonstrates intended logic; it is **not** evidence of physical safety. The real control ESP32 must enforce motor safety independently, and the laptop is never the only safety mechanism.
+## How the boat connects
+The control ESP32 (firmware `electronics/firmware/seaguardian_revC`) is a WebSocket **client**. It dials `ws://<laptop address>:8000/ws`, sends a JSON telemetry frame ten times a second and accepts JSON commands. At start-up the dashboard prints the three values the firmware needs:
 
-## Implemented, simulated or future
-
-| Capability | Status |
-|---|---|
-| Mission state machine READY/RUNNING/STOPPED/FAULT, Start/Stop/E-STOP/Reset, event log | Implemented |
-| Simulated control ESP32: IMU (roll, pitch, yaw rate), GPS position + fix, DC motor throttle, rear rudder | Simulated |
-| Scenarios: normal mission, tilt, comms loss (1.0 s timeout), E-STOP, steering, leak, GPS fix lost | Simulated |
-| Camera view: annotated stream + detections from `vision/viewer.py` (`--camera-viewer`) | Implemented and tested with mocks; not yet run against the real viewer. Without a viewer address a placeholder is shown; webcam/file input is labelled TEST |
-| Provisional limits (rudder, throttle) and IMU mounting: `opsdash/config.py` or `--config file.json` | Implemented; values are placeholders, shown as UNCONFIRMED |
-| Message format | Follows the PROPOSED protocol in `docs/architecture.md`; not agreed with Person 2, not in firmware |
-| Real control ESP32: live 3D attitude from the MPU6050, motor control (arm, hold-to-drive, speed limit), servo control, E-STOP forwarded | Implemented in `opsdash/boatlink.py`; tested with a stand-in ESP32 over real sockets, **not yet with the real board** |
-| Mission, GPS track and leak driven by the real ESP32 | **Future**: those panels still show the simulation |
-| PID steering | Not implemented (optional stretch) |
-
-## Run the complete demo
-Simulated control ESP32 (always) + optional camera. Python 3.9+, from the repository root:
-
-```bash
-# 1. (optional) camera + YOLO detector: see vision/README.md. Only viewer.py opens the ESP32 stream.
-cd vision && python viewer.py --source http://<camera-ip>:81/stream      # or: --source 0 for a laptop webcam test
-
-# 2. the dashboard (new terminal)
-cd dashboard
-python run_operator.py --camera-viewer http://127.0.0.1:8001            # omit the flag to run without a camera
 ```
-Open http://127.0.0.1:8000. If the viewer runs on another laptop, start it with `--host 0.0.0.0` (same trusted network only: it has no login) and give the dashboard that laptop's address, e.g. `--camera-viewer http://192.168.1.20:8001`. The video is loaded by your browser, so the browser must be able to reach the viewer.
-
-## Real boat ESP32 (motors, servo, gyroscope)
-Firmware: `electronics/firmware/seaguardian_revC` (pinout and flashing steps in its README). The ESP32 dials **out** to the laptop, so the dashboard must listen on the network:
-
-```bash
-python run_operator.py --host 0.0.0.0 --camera-viewer http://127.0.0.1:8001
+Boat ESP32 WebSocket server: ws://172.16.55.105:8000/ws   (firmware: WS_HOST "172.16.55.105", WS_PORT 8000, WS_PATH "/ws")
 ```
-It prints the address to put in the firmware's `secrets.h` (`WS_HOST`). Laptop and ESP32 must be on the same 2.4 GHz Wi-Fi, and the network must let devices talk to each other (some guest networks block this; a phone hotspot does not).
+`WS_HOST` goes in the firmware's `Main/secrets.h`; `WS_PORT` and `WS_PATH` are in `Config.h` and already match. Laptop and ESP32 must be on the same 2.4 GHz Wi-Fi, and the network must let devices talk to each other. If the laptop's address changes, update `WS_HOST` and upload again.
 
-- **Boat attitude, live 3D:** the model follows roll, pitch and yaw from the MPU6050 ten times a second. If it tilts the wrong way for how the sensor is mounted, tick *Invert roll / pitch / yaw* (remembered in the browser) or set the `imu_*` values in the config. Yaw is integrated gyro: it drifts.
-- **Motor control:** *Arm motors*, then hold the arrow buttons or W A S D / arrow keys. Releasing, switching tab or closing the page stops the motors; the page's keep-alive stops when no browser is open, so the firmware's 1 s watchdog then stops the boat on its own.
-- **Servo:** slider 0-180 degrees on GPIO18.
-- **E-STOP** (button or Esc) also latches the real boat's emergency stop; *Reset* releases it, and the motors stay disarmed until *Arm* is pressed again.
-- `--host 0.0.0.0` has no login: anyone on the same Wi-Fi can open the page and drive. Use it on a network you trust.
-- Try it without hardware: `python tests/test_opsdash_boatlink.py 127.0.0.1 8000` connects a clearly labelled fake ESP32 with moving attitude.
+## What is on the page
+- **Safety:** link state, emergency stop (button or Esc, latched on the ESP32), command watchdog, armed state. *Release emergency stop* leaves the motors disarmed until *Arm* is pressed again.
+- **Motor control:** *Arm motors*, then hold the arrow buttons or W A S D / arrow keys. Releasing, switching tab or closing the page stops the motors. The keep-alive is only sent while a browser has the page open, so the firmware's 1 s watchdog stops the boat if the laptop goes away.
+- **Servo:** slider 0-180 degrees (GPIO18).
+- **Boat attitude, live 3D:** follows roll, pitch and yaw from the MPU6050. If it tilts the wrong way for how the sensor is mounted, tick *Invert roll / pitch / yaw* (remembered in the browser) or set `imu_*` in a config file. Yaw is integrated gyro and drifts; *Zero gyro* recalibrates.
+- **Position:** latitude, longitude, speed and track from the NEO-6M once it has a fix.
+- **Event log:** connections, arming, emergency stops, watchdog stops, tilt warnings, rejected commands.
+
+The page has no login and listens on the whole network: anyone on the same Wi-Fi can open it and drive. Use a network you trust, or `--host 127.0.0.1` when no boat is needed.
+
+Without hardware, `python tests/test_opsdash_boatlink.py 127.0.0.1 8000` connects a stand-in ESP32 (firmware name `FAKE-not-hardware`) so the page can be tried. It is a test tool, not part of the dashboard.
 
 ## Camera panel
 - **Video:** the viewer's annotated `/stream.mjpg`, shown by the browser. The dashboard never opens the ESP32 stream (it serves one client only).
@@ -57,42 +34,30 @@ It prints the address to put in the firmware's `secrets.h` (`WS_HOST`). Laptop a
 - **REAL CAMERA vs TEST INPUT:** `src == esp32` is labelled REAL CAMERA (the video source, not proof a detection is right); `webcam` or `file` is a prominent TEST INPUT banner.
 - **Failure states, camera only (motor control is unaffected):** CAMERA DOWN, viewer not reachable, unreadable response, and FROZEN (the frame sequence number stopped moving for 2 s, so old detections are not shown as live). Detections are cleared whenever the data is not current. Reconnects need no dashboard restart.
 - **Wording:** "Person detected", "Vessel detected", "Bird detected", "Board detected", "Bottle detected", always as "Potential object detected - operator review required". A detected person is not necessarily a person in the water; a bottle is not proof of debris; confidence is the model's score, not verified accuracy. This is object detection, not an assessment of harbour damage.
-- **No control link:** detections never change the mission, motor or rudder. Camera events are warnings in the event log, never faults.
+- **No control link:** detections never change the motors or the servo. Camera events are warnings in the event log.
 - Not shown yet: the ESP32 `/status` endpoint (Wi-Fi signal etc.) is not polled.
 
 ## What has been tested
-| Test | What it shows | How |
+| What | How | Result |
 |---|---|---|
-| T1 dashboard starts, serves page + state | Passes | Mock viewer over real HTTP (simulated) |
-| T2 stream URL and detections reach the page state | Passes | Mock viewer (simulated); browser rendering checked by hand against a stand-in viewer |
-| T3 detection JSON parsed (sample from `vision/INTEGRATION.md`) | Passes | Mock data |
-| T4 labels for person/boat/bird/surfboard/bottle, unknown classes | Passes | Mock data |
-| T5 TEST INPUT vs REAL CAMERA | Passes | Mock data |
-| T6 camera DOWN (fields missing) | Passes | Mock data |
-| T7 malformed, missing, unreachable, non-JSON responses | Passes, never raises | Mock data |
-| T8 stale / frozen sequence | Passes | Fake clock |
-| T9 mission works with no viewer and with a dead viewer; camera never affects motor | Passes | Simulation |
-| T10 motor-safety simulation (E-STOP, comms loss, reset rules) | Passes | Simulation (`test_opsdash_scenarios.py`) |
-
-**Not physically verified by this dashboard:** the real `viewer.py` with real YOLO, the real ESP32 camera and the LAN/hotspot path were never run against this dashboard (only against mocks and a stand-in). The camera developer has measured the camera and viewer separately (see `vision/INTEGRATION.md`, section 6).
+| WebSocket server, telemetry, commands, keep-alive, emergency stop, state-change log | `tests/test_opsdash_boatlink.py`, stand-in ESP32 over real sockets | Passes |
+| Camera panel states and labels | `tests/test_opsdash_camera.py`, mock viewer | Passes |
+| Real ESP32 DevKit + MPU6050 on Wi-Fi: connects, live attitude on the page | By hand, 14 Nov | Works |
+| Motors and servo moving from the page | - | **Not yet tested on the bench** |
 
 ## Configuration
-Every hardware-dependent number lives in `opsdash/config.py`. Override with a JSON file:
 ```bash
-python run_operator.py --config my_config.json     # {"rudder_limit_deg": 25, "imu_yaw_sign": -1}
+python run_operator.py --config my_config.json     # {"tilt_warning_deg": 25, "imu_pitch_sign": -1}
 ```
-Unknown keys and invalid values are rejected. Do not treat the defaults as specifications: confirm rudder travel, throttle and IMU mounting with the CAD developer and the electrical engineer.
+Keys: `tilt_warning_deg`, `imu_roll_sign`, `imu_pitch_sign`, `imu_yaw_sign`, `imu_swap_roll_pitch`, `camera_viewer_url`.
 
 ## Files
 | File | What it is |
 |---|---|
-| `run_operator.py` | Starts the dashboard (`--config`, `--camera-viewer`, `--http-port`) |
-| `opsdash/mission.py` | Mission state machine and its transition rules |
-| `opsdash/simulator.py` | Simulated control ESP32 with its own safety rules |
-| `opsdash/protocol.py` | Message format (proposed) and timing constants |
-| `opsdash/console.py` | Ties mission, simulator and scenarios together; no web code |
-| `opsdash/boatlink.py` | WebSocket link to the real control ESP32 (standard library only): telemetry in, commands and keep-alive out |
-| `opsdash/camera.py` | Polls and validates the viewer's `/detections` (stale/malformed handling, labels, events) |
-| `opsdash/config.py` | Provisional limits, IMU mounting, camera address |
-| `opsdash/server.py`, `opsdash/static/index.html` | Local web server and the page |
-| `tests/` | Unit and scenario tests (simulation logic only) |
+| `run_operator.py` | Starts the dashboard (`--host`, `--http-port`, `--config`, `--camera-viewer`) |
+| `opsdash/server.py`, `opsdash/static/index.html` | Web server (page, API, `/ws`) and the page |
+| `opsdash/boatlink.py` | WebSocket server side for the control ESP32: telemetry in, commands and keep-alive out |
+| `opsdash/console.py` | Event log and warnings |
+| `opsdash/camera.py` | Polls and validates the viewer's `/detections` |
+| `opsdash/config.py` | Tilt limit, IMU mounting, camera address |
+| `tests/` | Unit tests |

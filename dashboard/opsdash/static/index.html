@@ -6,7 +6,7 @@
 <title>SeaGuardian Operator Dashboard</title>
 <style>
   /* Night-chart palette: deep navy, restrained cyan, and colour only where it means something:
-     green = normal, amber = warning, red = fault / emergency stop, slate = simulated or unavailable.
+     green = normal, amber = warning, red = fault / emergency stop, slate = unavailable.
      System fonts only, so the page works offline (Bahnschrift on Windows, DIN Alternate on macOS). */
   :root{
     --bg:#06101b; --panel:#0d1d2f; --panel-2:#112640; --line:#1c3652; --line-2:#2b4d72;
@@ -183,7 +183,7 @@
   @media (max-width:960px){.hw{grid-template-columns:1fr}}
   .chip.live{background:rgba(47,212,140,.14);border:1px solid rgba(47,212,140,.5);color:#8ff0c3}
   .chip.off{background:transparent;border:1px solid #7b2a33;color:#ff8b94}
-  .scene{position:relative;height:250px;perspective:800px;overflow:hidden;border:1px solid var(--line);border-radius:8px;
+  .scene{position:relative;height:230px;perspective:800px;overflow:hidden;border:1px solid var(--line);border-radius:8px;
     background:radial-gradient(ellipse at 50% 60%,#0f2a44 0,#061220 75%)}
   .scene.nolive #view{opacity:.3}
   #view,#model,.cub,.water{position:absolute;left:50%;top:54%;transform-style:preserve-3d}
@@ -243,16 +243,14 @@
     <div><span class="wordmark">SeaGuardian</span><small>Operator dashboard</small></div>
   </div>
   <div class="status" aria-label="System status">
-    <div class="pill sim" id="st-mode"><i></i><div><small>Mode</small><b>Simulation</b></div></div>
-    <div class="pill" id="st-mission"><i></i><div><small>Mission</small><b>-</b></div></div>
-    <div class="pill" id="st-link"><i></i><div><small>Boat controller</small><b>-</b></div></div>
+    <div class="pill" id="st-link"><i></i><div><small>Boat ESP32</small><b>-</b></div></div>
     <div class="pill" id="st-cam"><i></i><div><small>Camera</small><b>-</b></div></div>
-    <div class="pill" id="st-motor"><i></i><div><small>Propulsion</small><b>-</b></div></div>
+    <div class="pill" id="st-motor"><i></i><div><small>Motors</small><b>-</b></div></div>
     <div class="pill" id="st-alerts"><i></i><div><small>Alerts</small><b>-</b></div></div>
   </div>
   <div class="toprt">
     <span class="clock" id="clock">--:--:--</span>
-    <span class="key"><span class="swatch"></span>Striped edge = simulated data</span>
+    <span class="key">Live hardware data only</span>
   </div>
 </header>
 <div class="alerts">
@@ -277,108 +275,24 @@
     </div>
   </section>
 
+
   <div class="col">
-    <!-- Mission control -->
-    <section class="panel sim" aria-labelledby="h-mission">
-      <h2 id="h-mission">Mission <span class="chip sim">Simulated inspection</span></h2>
+    <!-- Safety: emergency stop of the real boat -->
+    <section class="panel" aria-labelledby="h-safety">
+      <h2 id="h-safety">Safety</h2>
       <div class="mission-body">
         <div>
-          <div class="label-sm">Mission status</div>
-          <div id="state" class="READY">READY</div>
-          <div id="elapsed"></div>
+          <div class="row"><span>Link to boat ESP32</span><b id="s-link">-</b></div>
+          <div class="row"><span>Emergency stop</span><b id="s-estop">-</b></div>
+          <div class="row"><span>Command watchdog</span><b id="s-wd">-</b></div>
+          <div class="row"><span>Motors</span><b id="s-arm">-</b></div>
         </div>
         <button id="b-estop" class="estop" aria-label="Emergency stop" aria-keyshortcuts="Escape"><span class="estop-cap">Emergency stop</span><span class="estop-key">ESC</span></button>
-        <div class="buttons">
-          <button id="b-start" class="go big">Start mission</button>
-          <button id="b-stop" class="big">Stop mission</button>
-          <button id="b-reset" class="big">Reset</button>
-        </div>
+        <div class="buttons"><button id="b-reset" class="big" disabled>Release emergency stop</button></div>
       </div>
       <div id="msg" role="status"></div>
+      <p class="note">The ESP32 stops the motors by itself if the link drops or no command arrives for 1 s. The laptop is never the only safety mechanism.</p>
     </section>
-
-    <!-- Safety -->
-    <section class="panel sim" aria-labelledby="h-safety">
-      <h2 id="h-safety">Safety <span class="chip sim">Simulated controller</span></h2>
-      <div class="row"><span>Link to boat controller</span><b id="comms">-</b></div>
-      <div class="row"><span>Emergency stop</span><b id="estop-state">-</b></div>
-      <div class="row"><span>Controller state</span><b id="cfault">-</b></div>
-      <div class="row"><span>Leak sensor</span><b id="leak">-</b></div>
-      <div class="row"><span>Active fault</span><b id="causes">-</b></div>
-      <p class="note">The laptop is never the only safety mechanism.</p>
-    </section>
-
-    <!-- Rudder and motor -->
-    <section class="panel sim" id="p-motor" aria-labelledby="h-motor">
-      <h2 id="h-motor">Rudder and motor <span class="chip sim">Simulated</span> <span class="nodata">No data</span></h2>
-      <div class="rud">
-        <svg id="boat" class="drawing" viewBox="0 0 200 172" role="img" aria-label="Top view of the catamaran with the rear rudder angle"></svg>
-        <div class="tiles">
-          <div class="tile"><span>Rudder command</span><b id="rcmd">-</b></div>
-          <div class="tile"><span>Rudder angle</span><b class="val" id="rang">-</b></div>
-          <div class="tile"><span>Steering</span><b class="val" id="rdir">-</b></div>
-          <div class="tile"><span>DC motor</span><b class="val" id="motorrep">-</b></div>
-          <div class="tile"><span>Motor command</span><b id="motorcmd">STOPPED</b></div>
-        </div>
-      </div>
-      <input type="range" id="rslider" min="-30" max="30" step="5" value="0" aria-label="Rudder command in degrees">
-      <div class="buttons">
-        <button id="r-port" class="small port">Port 15&deg;</button>
-        <button id="r-centre" class="small">Centre</button>
-        <button id="r-star" class="small stbd">Starboard 15&deg;</button>
-      </div>
-    </section>
-  </div>
-
-  <div class="col">
-    <!-- IMU -->
-    <section class="panel sim" id="p-imu" aria-labelledby="h-imu">
-      <h2 id="h-imu">Motion <span class="chip sim">Simulated IMU</span> <span class="nodata">No data</span></h2>
-      <div class="readout"><span>Roll</span><b class="val" id="roll">-</b></div>
-      <div class="readout"><span>Pitch</span><b class="val" id="pitch">-</b></div>
-      <div class="readout"><span>Yaw rate</span><b class="val" id="yaw">-</b></div>
-      <p class="note">Yaw rate = turning speed (+ to starboard), not a compass heading.</p>
-    </section>
-
-    <!-- GPS -->
-    <section class="panel sim" id="p-gps" aria-labelledby="h-gps">
-      <h2 id="h-gps">Position <span class="chip sim">Simulated GPS</span> <span class="nodata">No data</span></h2>
-      <div class="row"><span>Latitude</span><b class="val" id="lat">-</b></div>
-      <div class="row"><span>Longitude</span><b class="val" id="lon">-</b></div>
-      <div class="row"><span>Fix</span><b class="val" id="gpsvalid">-</b></div>
-      <svg id="track" class="drawing" viewBox="0 0 200 110" role="img" aria-label="Track of the simulated position, north up"></svg>
-    </section>
-
-    <!-- Event log -->
-    <section class="panel" aria-labelledby="h-log">
-      <h2 id="h-log">Event log</h2>
-      <ul id="log"></ul>
-    </section>
-  </div>
-</main>
-
-<!-- Real boat hardware: control ESP32 (motors, servo, IMU). Not simulated. -->
-<div class="hw">
-  <section class="panel" aria-labelledby="h-att">
-    <h2 id="h-att">Boat attitude, live 3D <span class="chip off" id="hw-link">ESP32 not connected</span></h2>
-    <div class="scene nolive" id="scene">
-      <div id="view"><div class="water"></div><div id="model"></div></div>
-      <div class="scene-msg" id="scene-msg">Waiting for the boat ESP32 (it connects to this laptop on port 8000, path /ws).</div>
-    </div>
-    <div class="att">
-      <div class="tile"><span>Roll</span><b id="hw-roll">-</b></div>
-      <div class="tile"><span>Pitch</span><b id="hw-pitch">-</b></div>
-      <div class="tile"><span>Yaw (relative)</span><b id="hw-yaw">-</b></div>
-    </div>
-    <div class="opts">
-      <label><input type="checkbox" id="inv-roll"> Invert roll</label>
-      <label><input type="checkbox" id="inv-pitch"> Invert pitch</label>
-      <label><input type="checkbox" id="inv-yaw"> Invert yaw</label>
-      <button id="hw-zero" class="small">Zero gyro (keep still 2 s)</button>
-    </div>
-    <p class="note">Roll and pitch come from the MPU6050 (gravity-referenced). Yaw is integrated gyro: it drifts and has no compass.</p>
-  </section>
-
   <section class="panel" aria-labelledby="h-drive">
     <h2 id="h-drive">Motor control <span class="chip plain" id="hw-armchip">Disarmed</span></h2>
     <div class="buttons">
@@ -414,113 +328,81 @@
       <div class="row"><span>Last rejection</span><b id="hw-err" style="font-size:13px">-</b></div>
     </div>
   </section>
-</div>
+  </div>
 
-<div class="below">
-  <section class="panel" aria-labelledby="h-cfg">
-    <h2 id="h-cfg">Configuration <span class="chip plain">Placeholders, not specifications</span></h2>
-    <div id="cfg"></div>
-    <p class="note">Set in <code>opsdash/config.py</code> or with <code>--config file.json</code>. Unconfirmed values wait for the CAD developer and the electrical engineer.</p>
+  <div class="col">
+  <section class="panel" aria-labelledby="h-att">
+    <h2 id="h-att">Boat attitude, live 3D <span class="chip off" id="hw-link">ESP32 not connected</span></h2>
+    <div class="scene nolive" id="scene">
+      <div id="view"><div class="water"></div><div id="model"></div></div>
+      <div class="scene-msg" id="scene-msg">Waiting for the boat ESP32 (it connects to this laptop on port 8000, path /ws).</div>
+    </div>
+    <div class="att">
+      <div class="tile"><span>Roll</span><b id="hw-roll">-</b></div>
+      <div class="tile"><span>Pitch</span><b id="hw-pitch">-</b></div>
+      <div class="tile"><span>Yaw (relative)</span><b id="hw-yaw">-</b></div>
+    </div>
+    <div class="opts">
+      <label><input type="checkbox" id="inv-roll"> Invert roll</label>
+      <label><input type="checkbox" id="inv-pitch"> Invert pitch</label>
+      <label><input type="checkbox" id="inv-yaw"> Invert yaw</label>
+      <button id="hw-zero" class="small">Zero gyro (keep still 2 s)</button>
+    </div>
+    <p class="note">Roll and pitch come from the MPU6050 (gravity-referenced). Yaw is integrated gyro: it drifts and has no compass.</p>
   </section>
-  <section class="panel more" aria-labelledby="h-notes">
-    <h2 id="h-notes">How to read this dashboard</h2>
-    <p class="note">Mission: READY &rarr; RUNNING &rarr; STOPPED &rarr; (Reset) READY. An emergency stop or a fault gives FAULT; only a confirmed Reset returns to READY, and Reset never restarts the motor.</p>
-    <p class="note">Safety: the real ESP32 must stop the motor on its own; the laptop is never the only safety mechanism. Communication loss (simulated): if the control ESP32 hears no laptop heartbeat for 1.0 s it stops the motor itself (COMMLOST). The dashboard shows the link as lost after 1.0 s without telemetry.</p>
-    <p class="note">Camera: object detection only. Potential objects for operator review; not an assessment of harbour damage or of any emergency. The camera is not part of the motor safety chain, and detections never control the motor or rudder.</p>
-    <p class="note">Rudder: a starboard (+) rudder swings the stern to port and turns the bow to starboard. Demo order: start and stop, tilt, cut comms then wait about 1 s, restore and reset, emergency stop and reset, then the rudder buttons. "Restart simulation" resets the demo harness; it is not a safety reset.</p>
-  </section>
-</div>
+
+
+    <section class="panel" id="p-gps" aria-labelledby="h-gps">
+      <h2 id="h-gps">Position <span class="chip plain">NEO-6M GPS</span></h2>
+      <div class="row"><span>Latitude</span><b id="lat">-</b></div>
+      <div class="row"><span>Longitude</span><b id="lon">-</b></div>
+      <div class="row"><span>Speed</span><b id="gspeed">-</b></div>
+      <svg id="track" class="drawing" viewBox="0 0 200 110" role="img" aria-label="Track of the GPS position, north up"></svg>
+    </section>
+
+    <section class="panel" aria-labelledby="h-log">
+      <h2 id="h-log">Event log</h2>
+      <ul id="log"></ul>
+    </section>
+  </div>
+</main>
 <footer>
-  Software simulation, apart from the camera and the "live" boat hardware panels (real control ESP32). Nothing here proves physical safety: motor safety must be enforced independently by the control ESP32. PID steering and hardware mode are future work.
+  All values on this page come from the real control ESP32 and the camera; nothing is simulated. A software emergency stop cannot remove power: keep a physical kill switch on the battery.
 </footer>
-
-<nav class="demobar" aria-label="Demo scenarios (simulation only)">
-  <span class="lead"><span class="chip sim">Simulation only</span> <span class="lbl">Demo scenarios</span></span>
-  <button id="s-tilt" class="small">Trigger tilt event</button>
-  <button id="s-cut" class="small">Cut comms link</button>
-  <button id="s-restore" class="small">Restore comms link</button>
-  <button id="s-leakon" class="small">Leak: wet</button>
-  <button id="s-leakoff" class="small">Leak: dry</button>
-  <button id="s-gpsoff" class="small">GPS fix lost</button>
-  <button id="s-gpson" class="small">GPS fix back</button>
-  <button id="s-restart" class="small spacer">Restart simulation</button>
-</nav>
 
 <script>
 const $ = id => document.getElementById(id);
-const INK = "#cfe0ee", RED = "#ff5d68", GREEN = "#33d69a", BLUE = "#38bdf0", MARK = "#ffffff", DIM = "#8ea7bc";
-let busy = false, lastState = "READY", draggingRudder = false, rudderLimit = 30;
+const BLUE = "#38bdf0", MARK = "#ffffff", DIM = "#8ea7bc";
 const f = (v, unit, d = 1) => (v === undefined || v === null) ? "-" : `${Number(v).toFixed(d)}${unit.startsWith("°") ? "" : " "}${unit}`;
 const esc = t => String(t).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+function say(text, ok){ $("msg").textContent = text === "ok" ? "" : text; $("msg").style.color = ok ? "var(--dim)" : "var(--amber)"; }
+function setPill(id, text, cls){ const el = $(id); el.querySelector("b").textContent = text; el.className = "pill " + cls; }
 
 async function send(name, body){
-  if (busy && name !== "estop") return;   // guard against double clicks, but never drop E-STOP
-  busy = true;
   try {
     const r = await fetch("/api/command/" + name, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body || {})});
     const j = await r.json();
-    $("msg").textContent = j.message === "ok" ? "" : j.message;
-    $("msg").style.color = j.ok ? "var(--dim)" : "var(--amber)";
-  } catch (e) { $("msg").textContent = "Cannot reach the dashboard server."; }
-  busy = false; refresh();
+    say(j.message, j.ok);
+  } catch (e) { say("Cannot reach the dashboard server.", false); }
+  refresh();
 }
-$("b-start").onclick = () => send("start");
-$("b-stop").onclick = () => send("stop");
 $("b-estop").onclick = () => send("estop");
 document.addEventListener("keydown", e => { if (e.key === "Escape") send("estop"); });
 $("b-reset").onclick = () => {
-  if (lastState === "FAULT" && !confirm("Clear the fault and return to READY?\n\nThe motor stays STOPPED until you press Start again.")) return;
-  send("reset", {confirm: lastState === "FAULT"});
+  if (confirm("Release the boat's emergency stop?\n\nThe motors stay disarmed until you press Arm.")) send("reset", {confirm: true});
 };
-$("r-port").onclick = () => send("rudder", {deg: -15});
-$("r-centre").onclick = () => send("rudder", {deg: 0});
-$("r-star").onclick = () => send("rudder", {deg: 15});
-$("rslider").onpointerdown = () => draggingRudder = true;
-$("rslider").onchange = e => { draggingRudder = false; send("rudder", {deg: Number(e.target.value)}); };
-$("s-tilt").onclick = () => send("scenario-tilt");
-$("s-cut").onclick = () => send("scenario-link_cut");
-$("s-restore").onclick = () => send("scenario-link_restore");
-$("s-leakon").onclick = () => send("scenario-leak_on");
-$("s-leakoff").onclick = () => send("scenario-leak_off");
-$("s-gpsoff").onclick = () => send("scenario-gps_off");
-$("s-gpson").onclick = () => send("scenario-gps_on");
-$("s-restart").onclick = () => { if (confirm("Restart the whole simulation (demo only)?")) send("scenario-restart", {confirm: true}); };
-
-function drawBoat(angle){
-  // Catamaran top view, bow up. The rear rudder pivots behind the bridge deck; + angle swings the blade's
-  // trailing edge to starboard (right). Port = red, starboard = green, as on navigation lights.
-  angle = angle || 0;
-  const px = 100, py = 120, len = 32, P = t => [px + len * Math.sin(t), py + len * Math.cos(t)];
-  const lim = rudderLimit * Math.PI / 180, [ex, ey] = P(angle * Math.PI / 180);
-  const [lx, ly] = P(-lim), [cx, cy] = P(0), [rx, ry] = P(lim);
-  const blade = angle > 2 ? GREEN : angle < -2 ? RED : INK;
-  const hull = x => `M${x} 10 C${x + 13} 36 ${x + 13} 100 ${x + 10} 128 L${x - 10} 128 C${x - 13} 100 ${x - 13} 36 ${x} 10 Z`;
-  $("boat").innerHTML = `
-    <path d="M${px} ${py} L${lx} ${ly} A${len} ${len} 0 0 0 ${cx} ${cy} Z" fill="${RED}" opacity=".22"/>
-    <path d="M${px} ${py} L${cx} ${cy} A${len} ${len} 0 0 0 ${rx} ${ry} Z" fill="${GREEN}" opacity=".22"/>
-    <rect x="66" y="46" width="68" height="64" rx="3" fill="#0b1c2e" stroke="#5f84a5" stroke-width="1.5"/>
-    <rect x="88" y="62" width="24" height="22" rx="2" fill="#1c6f94"/>
-    <path d="${hull(66)}" fill="#12293f" stroke="#7fa3c0" stroke-width="2"/>
-    <path d="${hull(134)}" fill="#12293f" stroke="#7fa3c0" stroke-width="2"/>
-    <line x1="${px}" y1="${py}" x2="${cx}" y2="${cy}" stroke="${INK}" stroke-width="1" stroke-dasharray="3 3" opacity=".4"/>
-    <line x1="${px}" y1="${py}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="${blade}" stroke-width="6" stroke-linecap="round"/>
-    <circle cx="${px}" cy="${py}" r="4" fill="${INK}"/>
-    <text x="100" y="36" text-anchor="middle" font-size="11" fill="${DIM}">Bow</text>
-    <text x="6" y="166" font-size="12" font-weight="600" fill="${RED}">Port</text>
-    <text x="194" y="166" font-size="12" font-weight="600" fill="${GREEN}" text-anchor="end">Starboard</text>`;
-}
 
 function drawTrack(pts){
-  if (!pts.length) { $("track").innerHTML = `<text x="100" y="58" text-anchor="middle" font-size="11" fill="${DIM}">No position yet</text>`; return; }
+  if (!pts.length) { $("track").innerHTML = `<text x="100" y="58" text-anchor="middle" font-size="11" fill="${DIM}">No GPS fix yet</text>`; return; }
   const lat0 = pts[0][0], lon0 = pts[0][1], k = Math.cos(lat0 * Math.PI / 180);
   const xy = pts.map(([la, lo]) => [(lo - lon0) * 111320 * k, -(la - lat0) * 111320]);   // metres, north up
   const xs = xy.map(p => p[0]), ys = xy.map(p => p[1]);
   const minx = Math.min(...xs), maxx = Math.max(...xs), miny = Math.min(...ys), maxy = Math.max(...ys);
-  const span = Math.max(maxx - minx, (maxy - miny) * 200 / 110, 20), s = 170 / span;
-  const X = x => 15 + (x - minx) * s, Y = y => 15 + (y - miny) * s;   // y is already north-negative
+  const span = Math.max(maxx - minx, (maxy - miny) * 200 / 110, 20), sc = 170 / span;
+  const X = x => 15 + (x - minx) * sc, Y = y => 15 + (y - miny) * sc;
   const line = xy.map(p => `${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(" ");
   const last = xy[xy.length - 1];
-  $("track").innerHTML = `<polyline points="${line}" fill="none" stroke="${BLUE}" stroke-width="1.8" stroke-dasharray="4 2"/>
+  $("track").innerHTML = `<polyline points="${line}" fill="none" stroke="${BLUE}" stroke-width="1.8"/>
     <circle cx="${X(last[0])}" cy="${Y(last[1])}" r="7" fill="none" stroke="${MARK}" stroke-width="1.5"/>
     <circle cx="${X(last[0])}" cy="${Y(last[1])}" r="2.5" fill="${MARK}"/>
     <text x="194" y="14" text-anchor="end" font-size="10" fill="${DIM}">N &uarr;  ${span.toFixed(0)} m across</text>`;
@@ -539,8 +421,8 @@ const CAM_MSG = {
 $("camtoggle").onclick = () => send(lastCam === "OFF" ? "camera-on" : "camera-off");
 let lastCam = null, viewerUrl = null;
 $("camflip").onclick = async () => {   // the viewer rotates the image before detection, so the boxes stay right
-  try { await fetch(viewerUrl + "/flip", {method: "POST"}); $("msg").textContent = ""; }
-  catch (e) { $("msg").textContent = "Cannot reach the camera viewer to flip the image."; }
+  try { await fetch(viewerUrl + "/flip", {method: "POST"}); say("", true); }
+  catch (e) { say("Cannot reach the camera viewer to flip the image.", false); }
 };
 function renderCamera(c){
   const on = c.configured, st = c.status;
@@ -598,6 +480,7 @@ $("model").innerHTML =
   cuboid(26, 22, 170, -52, 8, 0, "#1d4263") + cuboid(26, 22, 170, 52, 8, 0, "#1d4263") +
   cuboid(26, 22, 14, -52, 8, -92, "#b3202d") + cuboid(26, 22, 14, 52, 8, -92, "#12865a") +
   cuboid(130, 6, 96, 0, -6, 0, "#2b5d86") + cuboid(52, 26, 56, 0, -22, 6, "#1c6f94") + cuboid(16, 12, 12, 0, -24, -28, "#38bdf0");
+const track = [];
 let hw = null, yawShown = 0, lastYaw = null, armed = false;
 const held = new Set(), INV = ["roll", "pitch", "yaw"];
 INV.forEach(k => { const el = $("inv-" + k); el.checked = localStorage.getItem("inv-" + k) === "1"; el.onchange = () => localStorage.setItem("inv-" + k, el.checked ? "1" : "0"); });
@@ -645,7 +528,21 @@ function renderBoat(b){
   $("hw-imu").textContent = !imu ? "-" : imu.ok ? `OK, ${imu.temp} °C, ${imu.errors} read errors` : "NOT ANSWERING";
   $("hw-imu").className = imu && !imu.ok ? "bad" : "";
   const g = t && t.gps;
-  $("hw-gps").textContent = !g ? "-" : g.fix ? `${g.lat.toFixed(5)}, ${g.lon.toFixed(5)} (${g.sats} sats)` : g.receiving ? `Searching, ${g.sats} sats` : "No data from module";
+  $("hw-gps").textContent = !g ? "-" : g.fix ? `Fix, ${g.sats} satellites` : g.receiving ? `Searching, ${g.sats} satellites` : "No data from module";
+  $("lat").textContent = g && g.fix ? g.lat.toFixed(6) : "-"; $("lon").textContent = g && g.fix ? g.lon.toFixed(6) : "-";
+  $("gspeed").textContent = g && g.speed_kmh !== null && g.speed_kmh !== undefined ? g.speed_kmh.toFixed(1) + " km/h" : "-";
+  if (g && g.fix) { track.push([g.lat, g.lon]); if (track.length > 300) track.shift(); }
+  drawTrack(track);
+  // safety panel + top pills
+  const set = (id, text, cls) => { $(id).textContent = text; $(id).className = cls || ""; };
+  set("s-link", live ? "Connected" : "NOT CONNECTED", live ? "ok" : "bad");
+  set("s-estop", !live ? "-" : estop ? "ACTIVE (latched)" : "Not active", estop ? "fault" : "");
+  set("s-wd", !live ? "-" : sys.failsafe ? "TRIPPED: motors stopped" : "OK", live && sys.failsafe ? "warn" : live ? "ok" : "");
+  set("s-arm", !live ? "-" : armed ? "ARMED" : "Disarmed", armed ? "warn" : "");
+  $("b-reset").disabled = !estop;
+  const moving = !!(m && (m.left || m.right));
+  setPill("st-link", live ? "Connected" : "Not connected", live ? "ok" : "bad");
+  setPill("st-motor", !live ? "No data" : estop ? "E-STOP" : moving ? "Running" : armed ? "Armed" : "Disarmed", estop ? "bad" : moving ? "ok" : armed ? "warn" : "");
   $("hw-err").textContent = b.last_error || "-";
 }
 async function pollBoat(){
@@ -681,8 +578,9 @@ document.addEventListener("visibilitychange", () => { if (document.hidden) relea
 $("hw-stop").onclick = () => { held.clear(); boat("stop"); };
 $("hw-arm").onclick = async () => {
   const j = await boat("arm", {value: !armed});
-  if (!j.ok) { $("msg").textContent = j.message; $("msg").style.color = "var(--amber)"; }
+  if (!j.ok) say(j.message, false);
 };
+// (the Safety panel has the same release button)
 $("hw-unlatch").onclick = () => { if (confirm("Release the boat's emergency stop?\n\nThe motors stay disarmed until you press Arm.")) boat("estop_reset"); };
 $("hw-zero").onclick = () => { boat("imu_zero"); lastYaw = null; };
 $("hw-speed").onchange = e => { boat("speed", {value: Number(e.target.value) / 100}); e.target.blur(); };
@@ -691,12 +589,18 @@ $("hw-servo").oninput = e => { const now = Date.now(); if (now - servoSent > 80)
 $("hw-servo").onchange = e => { boat("servo", {angle: Number(e.target.value)}); e.target.blur(); };
 document.querySelectorAll("[data-servo]").forEach(el => el.onclick = () => boat("servo", {angle: Number(el.dataset.servo)}));
 
-// ---- top status bar: a plain-language summary of state that is already on the page (display only) ----
-function setPill(id, text, cls){ const el = $(id); el.querySelector("b").textContent = text; el.className = "pill " + cls; }
-function renderStatus(s){
-  const t = s.telemetry, c = s.camera;
-  setPill("st-mission", s.state, s.state === "RUNNING" ? "ok" : s.state === "FAULT" ? "bad" : s.state === "STOPPED" ? "" : "info");
-  setPill("st-link", s.comms === "OK" ? "Connected (sim)" : s.comms === "WAITING" ? "Waiting" : "Lost", s.comms === "OK" ? "ok" : s.comms === "WAITING" ? "" : "bad");
+setInterval(() => { $("clock").textContent = new Date().toLocaleTimeString([], {hour12: false}); }, 1000);
+
+async function refresh(){
+  let s;
+  try { s = await (await fetch("/api/state")).json(); }
+  catch (e) { $("banner").style.display = "block"; $("banner").textContent = "The dashboard cannot reach its server. Check that run_operator.py is still running."; return; }
+  renderCamera(s.camera);
+  $("banner").style.display = s.estop ? "block" : "none";
+  $("banner").textContent = s.estop ? "EMERGENCY STOP ACTIVE. Motors are off. Release it in the Safety panel, then arm again." : "";
+  $("warnbar").style.display = s.warnings.length ? "block" : "none";
+  $("warnbar").textContent = s.warnings.join("  |  ");
+  const c = s.camera;
   let cam = ["Not connected", ""];
   if (c.configured) {
     cam = c.status === "OK" ? (c.input === "REAL CAMERA" ? ["Live", "ok"] : ["Test input", "warn"])
@@ -704,72 +608,10 @@ function renderStatus(s){
         : c.status === "STALE" ? ["Frozen", "bad"] : ["Down", "bad"];
   }
   setPill("st-cam", cam[0], cam[1]);
-  setPill("st-motor", !t ? "No data" : t.thr > 0 ? "Running (sim)" : "Stopped", t && t.thr > 0 ? "ok" : "");
   const n = s.warnings.length;
-  setPill("st-alerts", s.state === "FAULT" ? "FAULT" : n ? `${n} warning${n > 1 ? "s" : ""}` : "None", s.state === "FAULT" ? "bad" : n ? "warn" : "ok");
-}
-setInterval(() => { $("clock").textContent = new Date().toLocaleTimeString([], {hour12: false}); }, 1000);
-
-async function refresh(){
-  let s;
-  try { s = await (await fetch("/api/state")).json(); }
-  catch (e) { $("banner").style.display = "block"; $("banner").textContent = "The dashboard cannot reach its server. Check that run_operator.py is still running."; return; }
-  lastState = s.state;
-  renderCamera(s.camera);
-  const t = s.telemetry, stale = s.telemetry_stale;
-  $("state").textContent = s.state; $("state").className = s.state;
-  $("elapsed").textContent = s.mission_elapsed_s === null ? "" : `Mission time ${s.mission_elapsed_s} s (simulated)`;
-  $("b-start").disabled = !s.allowed.start; $("b-stop").disabled = !s.allowed.stop; $("b-reset").disabled = !s.allowed.reset;
-  const fault = s.state === "FAULT";
-  $("banner").style.display = fault ? "block" : "none";
-  $("banner").textContent = fault ? "FAULT: " + s.fault_causes.join(", ") + ". Motor command STOPPED. A deliberate reset is required." : "";
-  $("warnbar").style.display = s.warnings.length ? "block" : "none";
-  $("warnbar").textContent = s.warnings.join("  |  ");
-  ["p-imu", "p-gps", "p-motor"].forEach(id => $(id).classList.toggle("stale", !!stale));
-
-  $("roll").textContent = f(s.imu.roll, "°");
-  $("pitch").textContent = f(s.imu.pitch, "°");
-  $("yaw").textContent = f(s.imu.yaw_rate, "°/s");
-  $("lat").textContent = t && t.lat !== null ? t.lat.toFixed(6) : "-";
-  $("lon").textContent = t && t.lon !== null ? t.lon.toFixed(6) : "-";
-  $("gpsvalid").textContent = t ? (t.fix ? "Valid (simulated)" : "NO FIX") : "-";
-  $("gpsvalid").className = "val" + (t && !t.fix ? " bad" : "");
-  drawTrack(s.track);
-
-  rudderLimit = s.config.rudder_limit_deg;
-  $("motorrep").textContent = t ? (t.thr > 0 ? `Running, ${t.thr.toFixed(2)}` : "Stopped") : "-";
-  $("motorcmd").textContent = s.motor_command;
-  $("rcmd").textContent = f(s.rudder_command, "°", 0);
-  const ang = t && t.rud !== null ? t.rud : 0;
-  $("rang").textContent = t ? f(ang, "°") : "-";
-  $("rdir").textContent = !t ? "-" : ang > 2 ? "Starboard" : ang < -2 ? "Port" : "Centre";
-  $("rdir").className = "val" + (t && ang > 2 ? " ok" : t && ang < -2 ? " bad" : "");
-  drawBoat(ang);
-  $("rslider").min = -rudderLimit; $("rslider").max = rudderLimit;
-  if (!draggingRudder) $("rslider").value = s.rudder_command;
-  const unconfirmed = key => key && s.config.unconfirmed.includes(key) ? ' <span class="chip sim">Unconfirmed</span>' : "";
-  $("cfg").innerHTML = [
-    ["Rudder limit", `&plusmn;${rudderLimit}&deg;`, "rudder_limit_deg"],
-    ["Mission throttle", s.config.throttle_run, "throttle_run"],
-    ["Max throttle", s.config.throttle_max, "throttle_max"],
-    ["IMU mounting", `roll ${s.config.imu_roll_sign > 0 ? "+" : "-"}, pitch ${s.config.imu_pitch_sign > 0 ? "+" : "-"}, yaw ${s.config.imu_yaw_sign > 0 ? "+" : "-"}${s.config.imu_swap_roll_pitch ? ", swapped" : ""}`, "imu_yaw_sign"],
-    ["Rudder centres on stop", s.config.rudder_centre_on_stop ? "yes (proposed)" : "no", "rudder_centre_on_stop"],
-    ["Tilt warning", `${s.config.tilt_warning_deg}&deg;`, null],
-  ].map(([k, v, key]) => `<div class="row"><span>${k}</span><b>${v}${unconfirmed(key)}</b></div>`).join("");
-
-  const comms = $("comms");
-  comms.textContent = s.comms === "OK" ? "OK" : s.comms === "WAITING" ? "Waiting for telemetry" : `LOST${s.link_cut ? " (cut by simulation)" : ""}`;
-  comms.className = s.comms === "OK" ? "ok" : "bad";
-  const estop = s.fault_causes.includes("E-STOP");
-  $("estop-state").textContent = estop ? "ACTIVE (latched)" : "Not active"; $("estop-state").className = estop ? "fault" : "";
-  $("cfault").textContent = s.controller_state; $("cfault").className = s.controller_state === "OK" ? "ok" : "fault";
-  const leak = !!(t && t.leak);
-  $("leak").textContent = !t ? "-" : leak ? "WET" : "Dry (simulated)"; $("leak").className = leak ? "fault" : "";
-  $("causes").textContent = s.fault_causes.length ? s.fault_causes.join(", ") : "None";
-
+  setPill("st-alerts", s.estop ? "E-STOP" : n ? `${n} warning${n > 1 ? "s" : ""}` : "None", s.estop ? "bad" : n ? "warn" : "ok");
   $("log").innerHTML = s.events.slice().reverse().map(e =>
     `<li class="${e.level === "fault" ? "fault" : e.level === "warn" ? "warn" : ""}"><time>${new Date(e.time * 1000).toLocaleTimeString()}</time><span>${esc(e.text)}</span></li>`).join("");
-  renderStatus(s);
 }
 setInterval(refresh, 250); refresh();
 </script>
