@@ -2,6 +2,16 @@
 
 Maintained by Claude (AI assistant) for the Electrical & Embedded Systems Lead. Newest session at the bottom.
 
+## Evidence index (read this first)
+
+Results in this log come from three different kinds of test. They must not be mixed up.
+
+| Kind | Applies to | Where in this log | What it shows |
+|---|---|---|---|
+| Rev B emulator results | The earlier ESP-IDF firmware (BTS7960, ESP32 hosts the page). Not the firmware in use | Session 3 | 46 PC tests and 25 end-to-end checks in the QEMU emulator. Nothing about the current Arduino firmware or any real board |
+| Rev C PC and emulator results | The current Arduino firmware | Sessions 5, 9, 10, 11 | Compiles; 79 single-threaded PC tests; start-up in the emulator up to Wi-Fi |
+| Rev C real-hardware results | The current Arduino firmware on a real ESP32 | Session 8 (Heritage's board), Session 10 item 10 (team dashboard test) | Boot, Wi-Fi, MPU6050, GPS reception once, dashboard connection with live attitude. No motor, servo, emergency-stop or watchdog test on hardware yet |
+
 ## Session 1 – Fri 2026-11-13, 13:04 CET – circuit design (KiCad + Wokwi, with motor driver)
 
 **Request:** design the circuit diagram, include a motor driver, deliver it in both KiCad and Wokwi.
@@ -162,3 +172,103 @@ Wi-Fi `Armin - iphone`, external website (not ours), emergency stop, watchdog, d
 
 ### Note on revisions
 - rev B (ESP-IDF, BTS7960, ESP32 hosts the page) and rev C (Arduino, L298N, ESP32 is a client) are alternatives for different hardware; the JSON command/telemetry format is shared.
+
+## Session 6 – Fri 2026-11-13, 22:51 CET – how to run rev C and wire the sensors
+
+| # | Activity | Result |
+|---|---|---|
+| 1 | User asked how to run the Arduino firmware and which pins the sensors connect to. | Explained in chat: Arduino IDE setup (ESP32 board package 3.x, three libraries), opening `Main/Main.ino`, the `Config.h` edits, board and partition settings, upload, Serial Monitor at 115200; and wire-by-wire connections for the MPU6050, NEO-6M, SG90 and L298N, including power and ground. No files changed. |
+
+## Session 7 – Fri 2026-11-13, about 23:00–23:45 CET – tool set-up questions
+
+| # | Activity | Result |
+|---|---|---|
+| 1 | User asked whether the earlier ESP-IDF code needed anything installed. | Answered: the prebuilt binaries need only Python + esptool; building from source needs ESP-IDF v5.5.x. No files changed. |
+| 2 | User reported the Arduino Library Manager was very slow and some libraries were missing; asked for GitHub downloads. | Gave branch-archive zip links for arduinoWebSockets (Links2004), ArduinoJson 7.x (bblanchon) and TinyGPSPlus (mikalhart). **Not tested from here:** GitHub downloads return 403 in my environment, so the links were stated as unverified. |
+| 3 | User asked whether unzipping the libraries by hand into `Documents\Arduino\libraries` works. | Yes. Explained the folder layout (each folder must directly contain `library.properties` and `src`; no double nesting) and that the IDE must be restarted. |
+
+## Session 8 – Fri 2026-11-13, 23:48 – Sat 2026-11-14, 11:55 CET – first run on real hardware
+
+All results in this session were observed by the user on the real ESP32 and pasted into the chat. I did not see the hardware.
+
+| # | Activity | Result |
+|---|---|---|
+| 1 | User pasted compiler output (`#pragma message: BT: forcing BR/EDR…`) from ESP32 core 3.3.7. | Informational note from the core's Bluetooth headers, not an error. Core 3.3.7 differs from the 3.3.12 I compiled with; both are 3.x. |
+| 2 | User asked what "Hard resetting via RTS pin" means and how to reset by hand. | Normal end of a successful upload. Manual reset: EN button. |
+| 3 | First boot log from the real board. | **Confirmed on hardware:** the sketch compiles and uploads in the user's Arduino IDE; firmware boots and runs stably (heap steady at about 172 kB, no log drops, no resets); Wi-Fi joins and gets an address; ArduinoOTA starts; the MPU6050 answers and gyro calibration completes (bias −0.77, −0.91, 0.76 °/s); the NEO-6M delivers NMEA (5,084 characters, 0 checksum errors; no fix indoors, expected). |
+| 4 | **Problem:** `website server … not reachable`. Worked through it with the user: laptop address confirmed by `ipconfig` (192.168.1.78); ESP32 was first on a different network (iPhone hotspot vs home router), user moved it to the home Wi-Fi (ESP32 192.168.1.131); `netstat` shows the server listening on 0.0.0.0:8080; laptop can ping the ESP32; a browser on the laptop gets the server's "you need a WebSocket client" reply (server is up). | **Not solved.** The ESP32 still does not connect. Most likely cause: Windows Firewall blocking inbound connections from other devices. The firewall rule, the firewall-off test and the phone test I asked for have not been reported back. A firmware-side cause is not excluded: the WebSocket client has never completed a connection on real hardware. |
+| 5 | **My mistake:** I suggested opening `http://<laptop>:8080` in a browser as a server check. | Misleading for this server: it speaks only WebSocket, so the browser always gets an error text. Corrected in chat; the text does prove the server is running. |
+| 6 | **Problem:** GPS errors after about 90 s (corrupted NMEA sentences, then "no data from the module"). | Since the same wiring had delivered 5,084 clean characters earlier, baud rate and pin are right; assessed as a loose jumper or a supply dip (servo sharing the 5 V pin). Checks given. Not confirmed fixed. |
+| 7 | User changed `Config.h` (own Wi-Fi, host 172.20.10.4, port 5000) and asked about the path; asked for port 5000 in the test server. | Path must match the server (`test_server.py` accepts any path). Flagged that 172.20.10.x is a hotspot address and does not match a home Wi-Fi, and that a Flask-SocketIO server would not be compatible with a plain WebSocket client. `test_server.py` takes the port as an argument. |
+| 8 | User asked whether the ESP32 and the website can exchange data when both are on the same Wi-Fi. | Yes, if: a WebSocket server program runs on the laptop, `Config.h` points at it, it is plain WebSocket, the firewall allows the port, the network allows device-to-device traffic, and both sides use the documented JSON. |
+
+### Verified on hardware (by the user)
+- Build and upload from the Arduino IDE (core 3.3.7), boot, logging, Wi-Fi join, OTA service start, MPU6050 start-up and calibration, NEO-6M reception.
+
+### NOT verified
+- WebSocket connection to any server (open problem). Therefore also: commands, telemetry delivery, arming, emergency stop and watchdog on the real board.
+- Motors, L298N, servo movement, OTA upload, deep sleep, battery monitor.
+
+## Session 9 – Sat 2026-11-14, 13:31 CET – battery changed to three cells; repository package
+
+Request: update the battery calculations for three 3.7 V 2200 mAh LiPo cells and produce an updated package for the teammate who uploads to GitHub.
+
+| # | Activity | Result |
+|---|---|---|
+| 1 | Interpreted "3 × 3.7 V 2200 mAh". | Assumed **series (3S, 11.1 V)**; not stated by the user. Parallel (3.7 V) cannot drive the motors through an L298N; documented in the power budget, section 7. |
+| 2 | Wrote `tools/power_budget_3s.py` for the hardware actually in use (rev C: L298N, SG90, MPU6050, NEO-6M) and ran it. | 11.1 V nominal, 12.6 V full, 9.9 V cut-off, 2.2 Ah, 24.4 Wh. Idle 0.21 A (8.5 h). Cruise 2.21 A / 48 min at 1 A per motor, 4.21 A / 25 min at 2 A per motor. Peak 4.8 A with both L298N channels at their 2 A limit. Motor currents are still provisional. |
+| 3 | Worked out the hardware consequences. | Motors now see about 9–11 V instead of about 5.6 V: rated voltage must be checked, `MOTOR_MAX_DUTY` values given for 6 V and 9 V motors. L298N dissipation 3.6 W at 1 A per channel, about 11 W at 2 A. Battery divider unchanged (2.27 V at full). Fuse 15 A → 7.5 A (provisional). 11.1 V must never reach the ESP32 VIN. Series-pack charging and matching rules added. |
+| 4 | Firmware changes (`arduino/Main/Config.h`). | `BATT_CELLS` 2 → 3; `WS_PORT` 8080 → 5000 (user's request); version `1.1.0-arduino`. `tools/test_server.py` default port 5000. Wi-Fi name, password and server address in the package are placeholders, not the user's real ones. |
+| 5 | Re-verified after the change. | PC unit tests: **79 passed, 0 failed.** Compile (core 3.3.12, `--warnings all`): passes with the battery monitor off and on, 0 warnings in project code, 1.20 MB (61 % with Minimal SPIFFS). |
+| 6 | Documentation. | New `docs/POWER_BUDGET_3S.md`. `arduino/README.md` section 10 updated. `docs/ENGINEERING_REPORT_revB.md` section 3 marked superseded (2S figures kept as a record). |
+| 7 | Assembled one repository folder and zipped it. | `SeaGuardian/`: `arduino/` (current firmware), `espidf_revB/`, `hardware/` (KiCad, Wokwi), `docs/`, `tools/`, `README.md`, `ACTIVITY_LOG.md`, `.gitignore`. |
+
+### NOT updated (stated so nobody assumes otherwise)
+- The wiring diagram and KiCad schematic in `docs/` and `hardware/` still show the rev B hardware (BTS7960 drivers, 2S battery, two servos). There is no drawing of the rev C wiring; the pin table in `arduino/README.md` is the reference.
+- `espidf_revB` firmware and its prebuilt binary are still configured for 2 cells (`SG_BATT_CELLS`).
+- No power figure has been measured.
+
+### Open items
+- WebSocket connection ESP32 → server (Session 8, item 4).
+- Motor rated voltage and current; cell type; which buck converter.
+- Confirm the cells are in series.
+
+## Session 10 – Sat 2026-11-14, 17:29 CET – reconciliation with the team's GitHub repository
+
+Request: the team's reconciliation request (12 conflicts plus power-budget corrections) comparing `SeaGuardian_revD.zip` with GitHub commit `a86eb17`.
+
+| # | Activity | Result |
+|---|---|---|
+| 1 | Cloned `Valencia1400/seasafe-hackathon` (read-only) and compared `electronics/firmware/seaguardian_revC` with the package's `arduino/` file by file. | GitHub `main` still at `a86eb17`. Five source files differ. GitHub has four fixes the package lacks: motor-output mutex, safe state re-written every 20 ms during an emergency stop, IMU re-probe, `secrets.h`; plus tuning changes and port 8000. |
+| 2 | Reviewed the emergency-stop race the team found. | **They are right, and the fault was in my original code:** the safety task computed a ramp step and wrote the pins after leaving the critical section, so a stop from the comm task could be overwritten; and during a latched stop only the targets were zeroed. My README claimed the pins were re-written every 20 ms; the code did not do that. GitHub's fix is correct and is kept unchanged. My 79 PC tests could not catch this because they are single-threaded. |
+| 3 | Read the dashboard source (`boatlink.py`) for protocol compatibility. | Plain WebSocket on port 8000, path `/ws`, answers pings. Compatible. The team's README records a real ESP32 connecting on 14 Nov. |
+| 4 | Resolved the "conflicting" connection reports. | Two different tests: mine (Heritage's board, `test_server.py` on a Windows laptop, did not connect, firewall suspected) and the team's (dashboard, connected). Both true. |
+| 5 | Found a mismatch nobody had listed. | Team decision D-007 is one propulsion motor plus a rudder; the firmware drives two motor channels and `move left/right` counter-rotates them. Documented; no code change proposed without confirmation. Also: the repository's safety rule says "no loose LiPo cells", which conflicts with the three-cell pack. |
+| 6 | Checked the L298 values against the datasheet (ST DS0218, via published copies). | 2 A DC per channel, over-temperature protection only: confirmed. **Error found in my rev D budget:** drop near 2 A is 3.7 V typical / 4.9 V max, not "about 2.8 V"; heat is 7.4–9.8 W per channel. |
+| 7 | Rewrote the power budget as rev E. | Removed the claim that the L298N limits battery peaks; added the camera ESP32 and the one-motor case; marked series wiring, duty values and fuse as assumed or provisional. |
+| 8 | Built the proposed change set on top of GitHub (not on top of my package). | `Config.h`: `BATT_CELLS 3` and version `1.1.0-arduino` only. README corrections. New: `POWER_BUDGET_3S.md`, `wiring/WIRING_revC.md`, `RECONCILIATION.md`, `tools/power_budget_3s.py`. No `.ino` file changed. |
+| 9 | Verified the patched tree. | Compiled (ESP32 core 3.3.12, all warnings on): 0 warnings in project code, 1,200,470 bytes. PC tests: **79 passed, 0 failed.** |
+
+### Superseded by this session
+- `SeaGuardian_revD.zip` `arduino/Main/` must not be merged: it lacks the GitHub fixes. Port 5000 is dropped.
+- `docs/POWER_BUDGET_3S.md` rev D is replaced by `electronics/POWER_BUDGET_3S.md` rev E.
+
+### NOT verified
+- The merged build has not been flashed or run on any board.
+- The mutex fix under real concurrent tasks; motors; servo; emergency stop; watchdog; OTA; sleep; battery monitor.
+- Which firmware is on the control ESP32 now.
+- Series wiring, cell ratings, motor count and ratings, regulator, rudder travel.
+
+## Session 11 – Sat 2026-11-14, 17:41 CET – hardware answers from the electronics lead; GitHub hand-over
+
+| # | Activity | Result |
+|---|---|---|
+| 1 | Heritage answered the open hardware questions. | Three cells in series; two motors, rated 5 V; servo powered from the ESP32 board's 5V pin; ESP32 Dev Module; rudder travel 90 degrees each side of centre. These are statements from the bench, not measurements by me. |
+| 2 | **Problem found from the answers:** 5 V motors on a 3S pack. | At full duty the motors would see about 11 V. `MOTOR_MAX_DUTY` changed 255 → 110 (about 5 V average on a full pack). Calculated only; must be checked with a meter. |
+| 3 | Kept the PC tests valid. | The tests expect duty values for a 255 limit, so `Config.h` now allows an override and `run_tests.sh` passes `-DMOTOR_MAX_DUTY=255`. 79 passed, 0 failed. |
+| 4 | Assessed the servo supply. | Servo stall current through the ESP32 board's 5V pin is a brown-out risk and may explain the GPS dropouts of Session 8. Documented; recommended feeding the servo from the regulator. |
+| 5 | Rudder limits. | Firmware 0–180 already equals 90 ± 90: no change. Dashboard default is 90 ± 6; full travel needs `servo_limit_deg` 90 in its config. |
+| 6 | Updated `RECONCILIATION.md`, `POWER_BUDGET_3S.md`, `WIRING_revC.md`, README; regenerated the patch. | Decision D-007 (one motor) flagged as out of date. |
+
+### NOT verified
+- Motor voltage at the capped duty; motor current; the 5 V source for the ESP32 on battery; everything listed under Session 10.
