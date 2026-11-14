@@ -6,6 +6,10 @@ the annotated video and detections on `http://127.0.0.1:8001`. **Dashboard team:
 
 ## 1. Flash the camera (once)
 
+**Clip the antenna on first.** The XIAO ESP32S3 has no built-in antenna: without the small external antenna it
+only reaches a phone lying right next to it (measured: -85 dBm where a laptop got -46 dBm, and it could not join).
+If joining fails, the Serial Monitor lists every network it sees with its signal in dBm; below about -80 is too weak.
+
 1. Wi-Fi: the firmware joins the team hotspot **`Armin – iPhone`** (password `password`) by default. Turn on
    *Maximize Compatibility* on the iPhone (2.4 GHz only) and keep the Personal Hotspot screen open while the
    board joins: iOS hides the hotspot from new devices once that screen is closed. The board retries every 15 s. Note the iPhone names it with a long dash (–), not `-`.

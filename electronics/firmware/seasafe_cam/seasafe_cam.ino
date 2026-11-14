@@ -101,10 +101,18 @@ static bool cameraInit() {
   return true;
 }
 
+static volatile int lastDisconnect = 0;  // ESP-IDF reason code of the last failed join (201 = not found, 15/202/204 = password/handshake)
+
 static void startWifi() {
   WiFi.setHostname(HOSTNAME);
+  WiFi.onEvent([](arduino_event_id_t, arduino_event_info_t info) { lastDisconnect = info.wifi_sta_disconnected.reason; },
+               ARDUINO_EVENT_WIFI_STA_DISCONNECTED);
   if (strlen(WIFI_SSID) > 0) {
     WiFi.mode(WIFI_STA);
+    // A building network has many access points with the same name: scan them all and join the strongest,
+    // not the first one found (which can be too weak to connect to).
+    WiFi.setScanMethod(WIFI_ALL_CHANNEL_SCAN);
+    WiFi.setSortMethod(WIFI_CONNECT_AP_BY_SIGNAL);
     WiFi.begin(WIFI_SSID, WIFI_PASS);
     WiFi.setSleep(false);  // power save adds big stream latency
     Serial.printf("Joining Wi-Fi '%s'", WIFI_SSID);
@@ -118,7 +126,7 @@ static void startWifi() {
     wifiProblem = "could not join '" WIFI_SSID "', status " + String(WiFi.status()) + " (1 = name not found, 4/6 = wrong password?). Seen:";
     WiFi.disconnect();
     int n = WiFi.scanNetworks();
-    for (int i = 0; i < n; i++) wifiProblem += " '" + WiFi.SSID(i) + "'";
+    for (int i = 0; i < n; i++) wifiProblem += " '" + WiFi.SSID(i) + "' " + String(WiFi.RSSI(i)) + "dBm";
     Serial.println(wifiProblem + "\nStarting own network SeaSafe-Cam and retrying the hotspot.");
   }
   // Own network so the camera is always reachable; loop() keeps retrying the hotspot, which may come up later.
@@ -234,6 +242,7 @@ void loop() {
   static uint32_t lastTry = 0;
   if (strlen(WIFI_SSID) > 0 && !joined() && millis() - lastTry > 15000) {
     lastTry = millis();
+    WiFi.disconnect();  // drop a stuck attempt first, otherwise begin() is ignored ("sta is connecting")
     WiFi.begin(WIFI_SSID, WIFI_PASS);
   }
   if (joined()) wifiProblem = "";
@@ -241,6 +250,6 @@ void loop() {
   Serial.printf("[%s] http://%s/  stream: http://%s:81/stream  (%s.local)  sensor=%s streaming=%d fps=%.1f\n",
                 joined() ? "STA" : apUp ? "AP SeaSafe-Cam" : "NO WIFI, retrying", ipString().c_str(), ipString().c_str(), HOSTNAME, sensorName,
                 (int)streaming, streaming ? fps : 0.0f);
-  if (wifiProblem.length()) Serial.println("  Wi-Fi: " + wifiProblem);
+  if (wifiProblem.length()) Serial.println("  Wi-Fi (last reason " + String(lastDisconnect) + "): " + wifiProblem);
   delay(5000);
 }
