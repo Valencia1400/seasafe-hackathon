@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SeaGuardian – 60 s product film</title>
+<style>
+  :root { --bg:#06101b; --panel:#0d1d2f; --panel2:#112640; --line:#1c3652; --line2:#2b4d72; --text:#e7f0f8; --dim:#8ea7bc; --mute:#6f879c;
+          --cyan:#38bdf0; --amber:#f2b134; --green:#2fd48c; --red:#ff4d5a; --yellow:#f0bf00; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:#02060c; color:var(--text); font-family:"Segoe UI","Inter",system-ui,sans-serif; overflow:hidden; }
+  #wrap { position:fixed; inset:0 0 54px 0; overflow:hidden; }
+  body.clean #wrap { bottom:0; }
+  #stage { position:absolute; left:50%; top:50%; width:1920px; height:1080px; margin:-540px 0 0 -960px; transform-origin:center center; overflow:hidden;
+           background:radial-gradient(ellipse at 50% 30%, #0b2036 0%, #06101b 60%, #030a12 100%); }
+  canvas { position:absolute; left:0; top:0; width:1920px; height:1080px; display:block; }
+  #ov { pointer-events:none; }
+  .abs { position:absolute; opacity:0; will-change:opacity,transform; }
+
+  /* ---------- typography */
+  .eyebrow { font-size:26px; letter-spacing:.42em; text-transform:uppercase; color:#b9d4e8; font-weight:500; text-shadow:0 2px 24px rgba(0,0,0,.7); }
+  .title  { font-size:74px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; line-height:1.05; text-shadow:0 4px 40px rgba(0,0,0,.65); }
+  .small  { font-size:19px; letter-spacing:.2em; text-transform:uppercase; color:var(--dim); font-weight:500; }
+  .stat   { font-size:290px; font-weight:200; letter-spacing:-.02em; line-height:.9; font-feature-settings:"tnum"; text-shadow:0 8px 60px rgba(0,0,0,.6); }
+  .stat b { font-weight:700; color:#fff; }
+  .stat em { font-style:normal; font-size:120px; font-weight:300; letter-spacing:.04em; margin-left:18px; color:#cfe6f5; }
+  .cap { font-size:34px; font-weight:400; letter-spacing:.02em; color:#e7f0f8; max-width:760px; line-height:1.3; text-shadow:0 2px 24px rgba(0,0,0,.75); }
+  .src { font-size:20px; color:#a8c0d4; letter-spacing:.08em; }
+  .tag { font-size:17px; letter-spacing:.24em; text-transform:uppercase; padding:9px 16px; border:1px solid rgba(143,190,222,.45); border-radius:6px;
+         color:#cfe2f1; background:rgba(5,14,24,.55); backdrop-filter:blur(6px); }
+  .tag.amber { color:var(--amber); border-color:rgba(242,177,52,.55); }
+  .hero  { font-size:150px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; text-shadow:0 6px 60px rgba(0,0,0,.6); }
+  .hero i { font-style:normal; color:var(--cyan); }
+  .tagline { font-size:44px; font-weight:300; letter-spacing:.34em; text-transform:uppercase; color:#d6ecfa; }
+  .glass { background:linear-gradient(180deg, rgba(14,34,56,.78), rgba(8,20,34,.78)); border:1px solid var(--line2); border-radius:14px; backdrop-filter:blur(10px); }
+  .rule { height:3px; width:120px; background:var(--cyan); border-radius:2px; box-shadow:0 0 22px var(--cyan); }
+
+  /* ---------- callouts anchored to the 3D model */
+  .callout { position:absolute; left:0; top:0; opacity:0; pointer-events:none; }
+  .callout .dot { position:absolute; width:14px; height:14px; margin:-7px 0 0 -7px; border-radius:50%; background:var(--cyan); box-shadow:0 0 0 6px rgba(56,189,240,.22), 0 0 24px var(--cyan); }
+  .callout .ln  { position:absolute; left:0; top:0; height:2px; background:linear-gradient(90deg,var(--cyan),rgba(56,189,240,.35)); transform-origin:0 50%; box-shadow:0 0 12px rgba(56,189,240,.6); }
+  .callout .tx  { position:absolute; white-space:nowrap; font-size:23px; letter-spacing:.22em; font-weight:600; padding:10px 18px; background:rgba(6,16,27,.78); border:1px solid rgba(56,189,240,.55); border-radius:6px; }
+  .chips { display:flex; gap:16px; }
+  .chip { font-size:21px; letter-spacing:.22em; font-weight:600; padding:12px 22px; border:1px solid rgba(56,189,240,.55); border-radius:999px; background:rgba(6,16,27,.7); }
+  .chip::before { content:""; display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--cyan); margin-right:12px; box-shadow:0 0 12px var(--cyan); }
+
+  #fade { position:absolute; inset:0; background:#050d18; opacity:1; pointer-events:none; }
+  #vignette { position:absolute; inset:0; pointer-events:none; background:radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,.55) 100%); }
+
+  /* ---------- dashboard */
+  #dash { position:absolute; inset:0; pointer-events:none; opacity:0; }
+  .panel { position:absolute; background:linear-gradient(180deg,#0f2238,#0b1a2b); border:1px solid var(--line); border-radius:14px; padding:18px 22px; opacity:0; overflow:hidden; }
+  .panel h3 { margin:0 0 14px; font-size:17px; letter-spacing:.24em; text-transform:uppercase; color:var(--dim); font-weight:600; display:flex; justify-content:space-between; align-items:center; }
+  .sim { font-size:13px; letter-spacing:.2em; color:#9fb7cc; border:1px solid #4a6d90; border-radius:4px; padding:3px 8px; }
+  .row { display:flex; align-items:center; justify-content:space-between; font-size:23px; margin:11px 0; }
+  .row .k { color:var(--dim); font-size:18px; letter-spacing:.12em; text-transform:uppercase; }
+  .row .v { font-feature-settings:"tnum"; font-weight:600; }
+  .bar { position:relative; height:12px; background:#0a1829; border:1px solid var(--line); border-radius:7px; overflow:hidden; }
+  .bar > i { position:absolute; top:0; bottom:0; border-radius:7px; background:linear-gradient(90deg,#1d79a8,var(--cyan)); }
+  .bar.y > i { background:linear-gradient(90deg,#b88f00,var(--yellow)); }
+  .bar .mid { position:absolute; left:50%; top:0; bottom:0; width:2px; background:#3a5f86; }
+  #feedFrame { position:absolute; left:48px; top:108px; width:1040px; height:585px; border:1px solid var(--line2); border-radius:14px; opacity:0; box-shadow:0 0 0 1px rgba(56,189,240,.08), 0 20px 60px rgba(0,0,0,.5); }
+  #dhead { position:absolute; left:48px; top:30px; width:1824px; height:60px; display:flex; align-items:center; justify-content:space-between; opacity:0; }
+  #dhead .brand { font-size:26px; letter-spacing:.34em; font-weight:700; }
+  #dhead .brand i { font-style:normal; color:var(--cyan); }
+  .pill { display:inline-flex; align-items:center; gap:10px; font-size:17px; letter-spacing:.2em; padding:9px 16px; border-radius:999px; border:1px solid var(--line2); background:#0b1a2b; color:var(--dim); }
+  .pill.amber { color:var(--amber); border-color:rgba(242,177,52,.5); }
+  .led { width:11px; height:11px; border-radius:50%; background:var(--green); box-shadow:0 0 12px var(--green); }
+  .btn { display:flex; align-items:center; justify-content:center; height:62px; margin:10px 0; border-radius:10px; font-size:21px; letter-spacing:.2em; font-weight:700; border:1px solid; }
+  .btn.red { color:#ffd9dc; background:rgba(255,77,90,.14); border-color:rgba(255,77,90,.6); }
+  .btn.amb { color:#ffe7b8; background:rgba(242,177,52,.12); border-color:rgba(242,177,52,.55); }
+  .btn.cy  { color:#cdeefc; background:rgba(56,189,240,.1);  border-color:rgba(56,189,240,.5); }
+
+  /* ---------- player chrome */
+  #ui { position:fixed; left:0; right:0; bottom:0; height:54px; display:flex; align-items:center; gap:14px; padding:0 18px; background:#050b13; border-top:1px solid #12263a; font-size:13px; color:#9fb7cc; }
+  body.clean #ui { display:none; }
+  #ui button { font:inherit; font-size:13px; padding:7px 14px; border-radius:8px; border:1px solid #23415e; background:#0b1a2b; color:#d6e6f2; cursor:pointer; }
+  #ui button:hover { background:#12304c; }
+  #seek { flex:1; accent-color:#38bdf0; }
+  #clock { font-feature-settings:"tnum"; min-width:92px; text-align:right; }
+</style>
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.js" } }</script>
+</head>
+<body>
+<div id="wrap"><div id="stage">
+  <canvas id="gl" width="1920" height="1080"></canvas>
+
+  <!-- ===== SCENE 1 – storm -->
+  <div id="s1a" class="abs eyebrow" style="left:110px;top:118px">October 2023</div>
+  <div id="s1b" class="abs title" style="left:110px;top:168px">Storm Babet<br><span style="font-weight:300;letter-spacing:.2em;font-size:46px;color:#cfe6f5">— Sweden</span></div>
+  <div id="s1stat" class="abs stat" style="left:104px;top:430px"><b id="statNum">+0</b><em>CM</em></div>
+  <div id="s1cap" class="abs cap" style="left:116px;top:742px">Water level at Simrishamn above mean sea level</div>
+  <div id="s1src" class="abs src" style="left:116px;top:808px">Source: SMHI</div>
+  <div id="illus" class="abs tag" style="left:110px;bottom:56px">Illustrative reconstruction</div>
+
+  <!-- ===== SCENE 2 – inspection problem -->
+  <div id="s2a" class="abs title" style="left:120px;top:150px;font-size:84px">When the storm passes…</div>
+  <div id="s2b" class="abs title" style="left:120px;top:282px;font-size:84px;color:var(--cyan);font-weight:300;letter-spacing:.1em">The uncertainty remains.</div>
+  <div id="s2tag" class="callout"><div class="dot"></div><div class="ln"></div><div class="tx">AWAITING INSPECTION</div></div>
+
+  <!-- ===== SCENE 3 – reveal -->
+  <div id="s3a" class="abs eyebrow" style="left:110px;top:100px">The prototype</div>
+  <div id="s3b" class="abs cap" style="left:110px;top:152px;font-size:30px;color:#bcd2e4">3D reconstruction from photographs of the physical, 3D-printed vessel</div>
+  <div id="c3a" class="callout"><div class="dot"></div><div class="ln"></div><div class="tx">DUAL PROPULSION</div></div>
+  <div id="c3b" class="callout"><div class="dot"></div><div class="ln"></div><div class="tx">RUDDER STEERING</div></div>
+  <div id="s3chips" class="abs chips" style="left:110px;bottom:92px"><div class="chip">CAMERA SYSTEM</div><div class="chip">GPS + IMU</div></div>
+
+  <!-- ===== SCENE 4 – mission visualisation -->
+  <div id="s4tag" class="abs tag" style="left:110px;bottom:56px">Concept visualization</div>
+
+  <canvas id="ov" width="1920" height="1080"></canvas>
+
+  <!-- ===== SCENE 5 – dashboard -->
+  <div id="dash">
+    <div id="dhead"><div class="brand">SEA<i>GUARDIAN</i> · OPERATOR CONSOLE</div>
+      <div style="display:flex;gap:14px"><span class="pill amber">SIMULATED TELEMETRY</span><span class="pill"><span class="led"></span>CONSOLE LINK</span><span class="pill" id="dclock">T+00:00</span></div></div>
+    <div id="feedFrame"></div>
+    <div class="panel" id="pDet" style="left:1112px;top:108px;width:760px;height:280px">
+      <h3>AI detections <span class="sim">CONCEPT</span></h3>
+      <div class="row"><span class="k">Boat</span><span class="bar" style="width:330px"><i id="dBoat" style="left:0;width:0"></i></span><span class="v" id="dBoatN">0</span></div>
+      <div class="row"><span class="k">Person</span><span class="bar" style="width:330px"><i id="dPers" style="left:0;width:0"></i></span><span class="v" id="dPersN">0</span></div>
+      <div class="row" style="margin-top:20px"><span class="k" style="font-size:15px;letter-spacing:.1em;text-transform:none;color:var(--mute)">Overlay highlights supported object classes only</span></div>
+    </div>
+    <div class="panel" id="pGps" style="left:1112px;top:404px;width:760px;height:289px;padding:0">
+      <h3 style="position:absolute;left:22px;top:16px;margin:0;z-index:2">GPS position <span class="sim" style="margin-left:14px">SIMULATED</span></h3>
+      <canvas id="map" width="760" height="289" style="position:absolute;left:0;top:0;width:760px;height:289px"></canvas>
+      <div id="gpsTxt" style="position:absolute;left:22px;bottom:14px;font-size:21px;font-feature-settings:'tnum';z-index:2;color:#cfe6f5"></div>
+    </div>
+    <div class="panel" id="pImu" style="left:48px;top:709px;width:350px;height:323px">
+      <h3>IMU <span class="sim">SIMULATED</span></h3>
+      <div class="row"><span class="k">Roll</span><span class="v" id="iR">0°</span></div><div class="bar"><div class="mid"></div><i id="iRb" style="left:50%;width:0"></i></div>
+      <div class="row"><span class="k">Pitch</span><span class="v" id="iP">0°</span></div><div class="bar"><div class="mid"></div><i id="iPb" style="left:50%;width:0"></i></div>
+      <div class="row"><span class="k">Heading</span><span class="v" id="iY">0°</span></div><div class="bar"><i id="iYb" style="left:0;width:0"></i></div>
+    </div>
+    <div class="panel" id="pPro" style="left:414px;top:709px;width:350px;height:323px">
+      <h3>Propulsion <span class="sim">SIMULATED</span></h3>
+      <div class="row"><span class="k">Black motor</span><span class="v" id="mL">0%</span></div><div class="bar y"><i id="mLb" style="left:0;width:0"></i></div>
+      <div class="row" style="margin-top:26px"><span class="k">Grey motor</span><span class="v" id="mR">0%</span></div><div class="bar y"><i id="mRb" style="left:0;width:0"></i></div>
+      <div class="row" style="margin-top:26px"><span class="k" style="font-size:15px;color:var(--mute);text-transform:none;letter-spacing:.08em">Two DC motors · yellow propellers</span></div>
+    </div>
+    <div class="panel" id="pRud" style="left:780px;top:709px;width:300px;height:323px">
+      <h3>Rudder <span class="sim">SIMULATED</span></h3>
+      <svg viewBox="-120 -20 240 150" width="256" height="160" style="display:block;margin:0 auto">
+        <path d="M-100 100 A100 100 0 0 1 100 100" fill="none" stroke="#1c3652" stroke-width="10" stroke-linecap="round"/>
+        <path id="rArc" d="M0 0" fill="none" stroke="#38bdf0" stroke-width="10" stroke-linecap="round"/>
+        <g id="rNeedle"><line x1="0" y1="100" x2="0" y2="22" stroke="#e7f0f8" stroke-width="5" stroke-linecap="round"/><circle cx="0" cy="100" r="9" fill="#f0bf00"/></g>
+        <text x="-100" y="124" fill="#6f879c" font-size="14" text-anchor="middle">−30°</text><text x="100" y="124" fill="#6f879c" font-size="14" text-anchor="middle">+30°</text>
+      </svg>
+      <div style="text-align:center;font-size:40px;font-weight:300;font-feature-settings:'tnum';margin-top:2px" id="rVal">0°</div>
+    </div>
+    <div class="panel" id="pCom" style="left:1096px;top:709px;width:370px;height:323px">
+      <h3>Communication <span class="sim">SIMULATED</span></h3>
+      <div class="row"><span class="k">Link</span><span class="v" style="color:var(--green)"><span class="led" style="display:inline-block;margin-right:10px" id="hb"></span>ONLINE</span></div>
+      <div class="row"><span class="k">Latency</span><span class="v" id="cLat">24 ms</span></div>
+      <div class="row"><span class="k">Signal</span><span class="v" id="cSig">−58 dBm</span></div>
+      <div class="row"><span class="k">Heartbeat</span><span class="v" id="cHb">0.5 s</span></div>
+    </div>
+    <div class="panel" id="pSaf" style="left:1482px;top:709px;width:390px;height:323px">
+      <h3>Safety controls</h3>
+      <div class="btn red" id="bStop">STOP MOTORS</div>
+      <div class="btn amb">CENTER RUDDER</div>
+      <div class="btn cy">DISARM</div>
+    </div>
+    <div id="dnote" class="abs" style="left:48px;top:1044px;font-size:15px;letter-spacing:.14em;color:#6f879c;text-transform:uppercase">Layout based on the operator console · values shown are simulated</div>
+  </div>
+
+  <!-- ===== SCENE 6 – final -->
+  <div id="s6a" class="abs hero" style="left:110px;top:300px">SEA<i>GUARDIAN</i></div>
+  <div id="s6r" class="abs rule" style="left:118px;top:488px"></div>
+  <div id="s6b" class="abs tagline" style="left:114px;top:524px">See first. Assess smarter.</div>
+  <div id="s6c" class="abs small" style="left:116px;top:610px;font-size:24px;color:#9fc2dd">Preliminary maritime inspection</div>
+  <div id="s6d" class="abs" style="left:116px;bottom:60px;font-size:19px;letter-spacing:.12em;color:#7f9ab0">3D-printed hackathon prototype — Field validation required.</div>
+
+  <div id="vignette"></div>
+  <div id="fade"></div>
+</div></div>
+
+<div id="ui">
+  <button id="bPlay">Play ▸</button><button id="bRestart">⟲ Restart</button>
+  <input id="seek" type="range" min="0" max="60" step="0.01" value="0">
+  <span id="clock">0:00.0 / 1:00</span>
+  <button id="bAud" title="Plays audio/voiceover.wav when the file exists">Voice: n/a</button>
+  <button id="bRec">● Record tab</button>
+</div>
+<audio id="vo" src="audio/voiceover.wav" preload="auto"></audio>
+<script type="module" src="./film.js"></script>
+</body>
+</html>

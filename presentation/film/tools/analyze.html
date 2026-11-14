@@ -1,0 +1,30 @@
+<!doctype html><meta charset="utf-8"><title>narration analysis</title>
+<body style="font:14px monospace;background:#111;color:#ddd"><pre id="o">working…</pre>
+<script type="module">
+// Decodes audio/narration.mp3, saves a 16 kHz mono WAV (film/out/narration16k.wav) and a pause/speech map (film/out/chunks.json).
+const o = document.getElementById('o');
+const buf = await (await fetch('../audio/narration.mp3')).arrayBuffer();
+const ac = new OfflineAudioContext(1, 1, 16000);
+const dec = await ac.decodeAudioData(buf);
+const off = new OfflineAudioContext(1, Math.ceil(dec.duration * 16000), 16000);
+const src = off.createBufferSource(); src.buffer = dec; src.connect(off.destination); src.start();
+const r = await off.startRendering(); const x = r.getChannelData(0);
+// WAV
+const wav = new DataView(new ArrayBuffer(44 + x.length * 2)); const W = (p, s) => [...s].forEach((c, i) => wav.setUint8(p + i, c.charCodeAt(0)));
+W(0, 'RIFF'); wav.setUint32(4, 36 + x.length * 2, true); W(8, 'WAVEfmt '); wav.setUint32(16, 16, true); wav.setUint16(20, 1, true); wav.setUint16(22, 1, true);
+wav.setUint32(24, 16000, true); wav.setUint32(28, 32000, true); wav.setUint16(32, 2, true); wav.setUint16(34, 16, true); W(36, 'data'); wav.setUint32(40, x.length * 2, true);
+for (let i = 0; i < x.length; i++) wav.setInt16(44 + i * 2, Math.max(-1, Math.min(1, x[i])) * 32767, true);
+await fetch('/__save?name=narration16k.wav', { method: 'POST', body: wav.buffer });
+// speech chunks (20 ms RMS)
+const win = 320, rms = []; for (let i = 0; i + win <= x.length; i += win) { let s = 0; for (let j = 0; j < win; j++) s += x[i + j] * x[i + j]; rms.push(Math.sqrt(s / win)); }
+const mx = Math.max(...rms);
+function chunks(th, minSil) { const out = []; let i = 0; while (i < rms.length) { if (rms[i] >= th * mx) { let j = i, gap = 0, last = i; while (j < rms.length) { if (rms[j] >= th * mx) { gap = 0; last = ++j; } else { gap++; j++; if (gap * 0.02 >= minSil) break; } } out.push([+(i * 0.02).toFixed(2), +(last * 0.02).toFixed(2)]); i = j; } else i++; } return out; }
+const res = { duration: dec.duration, sampleRate: dec.sampleRate, channels: dec.numberOfChannels, fine: chunks(0.03, 0.10), coarse: chunks(0.03, 0.30) };
+await fetch('/__save?name=chunks.json', { method: 'POST', body: JSON.stringify(res) });
+// codec support for the exporter
+const sup = {};
+try { sup.h264 = (await VideoEncoder.isConfigSupported({ codec: 'avc1.640028', width: 1920, height: 1080, bitrate: 12e6, framerate: 30, avc: { format: 'avc' } })).supported; } catch (e) { sup.h264 = String(e); }
+try { sup.h264main = (await VideoEncoder.isConfigSupported({ codec: 'avc1.4d0028', width: 1920, height: 1080, bitrate: 12e6, framerate: 30, avc: { format: 'avc' } })).supported; } catch (e) { sup.h264main = String(e); }
+try { sup.aac = (await AudioEncoder.isConfigSupported({ codec: 'mp4a.40.2', sampleRate: 48000, numberOfChannels: 2, bitrate: 192000 })).supported; } catch (e) { sup.aac = String(e); }
+window.RESULT = { ...res, sup }; o.textContent = JSON.stringify({ duration: res.duration, nFine: res.fine.length, nCoarse: res.coarse.length, sup }, null, 1); document.title = 'done';
+</script>
