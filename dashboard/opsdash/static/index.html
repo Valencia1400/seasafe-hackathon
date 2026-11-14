@@ -138,7 +138,7 @@
   #cammeta{display:grid;grid-template-columns:auto auto;gap:3px 14px;margin:0;font-size:13px}
   #cammeta dt{color:var(--dim)}
   #cammeta dd{margin:0;font:700 14px/1.3 var(--num);text-align:right}
-  .cam-foot .note{margin-top:10px}
+  .cam-foot .cam-note{grid-column:1 / -1;text-align:center;max-width:70ch;margin:8px auto 0}
 
   /* ---------- mission + emergency stop ---------- */
   .mission-body{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 14px;align-items:center}
@@ -241,10 +241,8 @@
     </div>
     <div class="cam-foot">
       <div id="camdets"></div>
-      <div>
-        <dl id="cammeta"></dl>
-        <p class="note">Object detection only: potential objects for operator review, not a damage assessment. The score is the model's own, not verified accuracy.</p>
-      </div>
+      <div><dl id="cammeta"></dl></div>
+      <p class="note cam-note">Object detection only: potential objects for operator review, not a damage assessment. The score is the model's own, not verified accuracy.</p>
     </div>
   </section>
 
