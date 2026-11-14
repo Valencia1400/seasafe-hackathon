@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SeaGuardian USV – 3D prototype</title>
+<style>
+  :root { --ink:#15202b; --muted:#5b6b7a; --line:rgba(21,32,43,.14); --accent:#0b6bcb; }
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; overflow:hidden; font-family:"Segoe UI",system-ui,sans-serif; color:var(--ink); }
+  body { background: radial-gradient(ellipse at 50% 35%, #f6f9fc 0%, #e3eaf1 55%, #cbd5df 100%); }
+  canvas#c { position:fixed; inset:0; width:100%; height:100%; display:block; cursor:grab; }
+  canvas#c:active { cursor:grabbing; }
+  .hud { transition:opacity .35s; }
+  #title { position:fixed; left:24px; top:18px; pointer-events:none; }
+  #title h1 { margin:0; font-size:15px; letter-spacing:.14em; text-transform:uppercase; font-weight:600; }
+  #title p { margin:3px 0 0; font-size:12px; color:var(--muted); }
+  #bar { position:fixed; left:50%; bottom:20px; transform:translateX(-50%); display:flex; gap:6px; flex-wrap:wrap; justify-content:center;
+         padding:6px; background:rgba(255,255,255,.78); border:1px solid var(--line); border-radius:12px; backdrop-filter:blur(8px); max-width:94vw; }
+  #bar button { font:inherit; font-size:12.5px; padding:7px 12px; border:1px solid transparent; border-radius:8px; background:transparent; color:var(--ink); cursor:pointer; }
+  #bar button:hover { background:rgba(11,107,203,.08); }
+  #bar button[aria-pressed="true"] { background:var(--accent); color:#fff; }
+  #bar kbd { font:inherit; font-size:10.5px; opacity:.6; margin-left:5px; }
+  #labels { position:fixed; inset:0; pointer-events:none; }
+  .lbl { position:absolute; transform:translate(10px,-50%); font-size:11.5px; white-space:nowrap; padding:2px 7px; border-radius:5px;
+         background:rgba(255,255,255,.85); border:1px solid var(--line); }
+  .lbl::before { content:""; position:absolute; left:-9px; top:50%; width:8px; height:1px; background:var(--ink); }
+  body.present .hud, body.present #labels { opacity:0; pointer-events:none; }
+  body.present, body.present canvas#c { cursor:none; }
+  #hint { position:fixed; right:24px; top:18px; font-size:11.5px; color:var(--muted); text-align:right; pointer-events:none; }
+  @media (max-width:640px){ #hint{display:none} #title{left:14px} }
+</style>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js" } }
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+<div id="labels"></div>
+
+<div id="title" class="hud">
+  <h1>SeaGuardian USV</h1>
+  <p>Catamaran unmanned surface vehicle · interactive 3D prototype</p>
+</div>
+<div id="hint" class="hud">Drag to rotate · scroll to zoom · right-drag to pan</div>
+
+<div id="bar" class="hud">
+  <button id="bTurn"  aria-pressed="true">Turntable<kbd>Space</kbd></button>
+  <button id="bProp"  aria-pressed="true">Propellers<kbd>M</kbd></button>
+  <button id="bRud"   aria-pressed="true">Rudder<kbd>U</kbd></button>
+  <button id="bLbl"   aria-pressed="false">Labels<kbd>L</kbd></button>
+  <button id="bReset">Reset view<kbd>R</kbd></button>
+  <button id="bPres">Presentation<kbd>P</kbd></button>
+</div>
+
+<script type="module" src="./main.js"></script>
+</body>
+</html>
