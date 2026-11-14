@@ -1,8 +1,9 @@
-"""Start the SeaGuardian operator dashboard (SIMULATION mode, no hardware needed).
+"""Start the SeaGuardian operator dashboard (simulated mission; real boat ESP32 and camera are optional).
 
     python run_operator.py            then open http://127.0.0.1:8000
     python run_operator.py --http-port 8080
     python run_operator.py --camera-viewer http://127.0.0.1:8001   (after starting vision/viewer.py)
+    python run_operator.py --host 0.0.0.0     lets the real boat ESP32 connect (ws://<laptop>:8000/ws)
 """
 import argparse
 

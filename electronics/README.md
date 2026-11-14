@@ -10,7 +10,24 @@ Protocol and safety rules: [docs/architecture.md](../docs/architecture.md). Requ
 5. Pressure sensor (atmospheric pressure, hPa).
 6. Leak input (R7) - a real leak sensor or two wires/a button as a clearly labelled test input.
 
-## Firmware: `firmware/seaguardian_esp32/seaguardian_esp32.ino`
+## Control firmware in use: `firmware/seaguardian_revC/Main/Main.ino`
+ESP32 DevKit (ESP32-WROOM-32D), L298N, SG90 servo, MPU6050, NEO-6M. It connects to the laptop dashboard over Wi-Fi (`dashboard/README.md`, "Real boat ESP32"). Pinout, libraries, board settings and the bench test procedure are in [its README](firmware/seaguardian_revC/README.md). Wi-Fi name, password and the laptop address go in `Main/secrets.h` (copy `secrets.example.h`; git-ignored). **Status: compiles (ESP32 core 3.3.12), 79 PC unit tests pass, not yet run on the board.**
+
+| GPIO | Connects to |
+|---|---|
+| 25 | L298N ENA (PWM, left motor; remove the ENA jumper) |
+| 26 / 27 | L298N IN1 / IN2 (left motor direction) |
+| 33 | L298N ENB (PWM, right motor; remove the ENB jumper) |
+| 32 / 13 | L298N IN3 / IN4 (right motor direction) |
+| 18 | Servo signal (orange) |
+| 21 / 22 | MPU6050 SDA / SCL (power it from 3V3) |
+| 16 / 17 | GPS TX -> 16, GPS RX -> 17 |
+| 14 | Wake button to GND (optional) |
+| 2 | On-board status LED |
+| 34 | Battery divider (optional, off by default) |
+| GND | One common ground: L298N, servo, MPU6050, GPS, battery minus |
+
+## Older firmware (not used): `firmware/seaguardian_esp32/seaguardian_esp32.ino`
 **Status: written with AI help, NOT yet compiled or run on hardware.** Open it in the Arduino IDE (ESP32 board package 2.x or 3.x, no extra libraries), check the pin table at the top against the wiring, compile, upload.
 
 - Sensors supported out of the box: MPU-6050 IMU (0x68) and BMP280 pressure (0x76/0x77). Other models: change `imuBegin/imuRead` or `baroBegin/baroRead`. A missing sensor is reported as `null` (shown as "-" on the dashboard), so the safety logic can be tested before sensors arrive.

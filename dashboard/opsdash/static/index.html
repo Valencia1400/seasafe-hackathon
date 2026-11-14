@@ -178,6 +178,37 @@
   #log li.warn span{color:var(--amber)} #log li.fault span{color:#ff7b85;font-weight:600}
   #log::-webkit-scrollbar{width:8px} #log::-webkit-scrollbar-thumb{background:#27476a;border-radius:4px}
 
+  /* ---------- real boat hardware (control ESP32 over Wi-Fi) ---------- */
+  .hw{display:grid;gap:10px;padding:10px 16px 0;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr)}
+  @media (max-width:960px){.hw{grid-template-columns:1fr}}
+  .chip.live{background:rgba(47,212,140,.14);border:1px solid rgba(47,212,140,.5);color:#8ff0c3}
+  .chip.off{background:transparent;border:1px solid #7b2a33;color:#ff8b94}
+  .scene{position:relative;height:250px;perspective:800px;overflow:hidden;border:1px solid var(--line);border-radius:8px;
+    background:radial-gradient(ellipse at 50% 60%,#0f2a44 0,#061220 75%)}
+  .scene.nolive #view{opacity:.3}
+  #view,#model,.cub,.water{position:absolute;left:50%;top:54%;transform-style:preserve-3d}
+  #view{transform:rotateX(-24deg) rotateY(-32deg)}
+  #model{left:0;top:0;transition:transform .12s linear}
+  .cub{left:0;top:0}
+  .cub i{position:absolute;display:block;border:1px solid rgba(207,224,238,.35)}
+  .water{left:-130px;top:22px;width:260px;height:260px;transform:rotateX(90deg);border-radius:50%;
+    background:radial-gradient(circle,rgba(56,189,240,.22),rgba(56,189,240,.03) 70%);border:1px dashed rgba(56,189,240,.3)}
+  .scene-msg{position:absolute;inset:auto 0 8px 0;text-align:center;color:var(--dim);font-size:12.5px}
+  .att{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
+  .att .tile b{font-size:22px}
+  .opts{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin-top:8px;color:var(--dim);font-size:13px}
+  .opts label{display:inline-flex;gap:5px;align-items:center;cursor:pointer}
+  .pad{display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(3,52px);gap:6px;justify-content:center;margin:8px 0}
+  .pad button{padding:0;font-size:20px;touch-action:none;user-select:none}
+  .pad button.held{background:#12865a;border-color:#2fd48c}
+  .pad .halt{font-size:12px;font-weight:800;letter-spacing:.06em;color:#ff8b94;border-color:#8a2f39}
+  .mbar{display:grid;grid-template-columns:3.2em 1fr 3.4em;gap:8px;align-items:center;font-size:13px;color:var(--dim);margin:4px 0}
+  .mbar .trk{position:relative;height:10px;border-radius:5px;background:#16304a}
+  .mbar .trk::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--line-2)}
+  .mbar .trk i{position:absolute;top:0;bottom:0;border-radius:5px;background:var(--green)}
+  .mbar b{font:700 14px/1 var(--num);color:var(--text);text-align:right}
+  .armed-on{background:#b3202d;border-color:#ff7a84;color:#fff}
+
   /* ---------- demo bar (always reachable) ---------- */
   .demobar{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
     padding:7px 16px;background:rgba(5,13,23,.96);border-top:1px solid var(--line-2)}
@@ -326,6 +357,65 @@
   </div>
 </main>
 
+<!-- Real boat hardware: control ESP32 (motors, servo, IMU). Not simulated. -->
+<div class="hw">
+  <section class="panel" aria-labelledby="h-att">
+    <h2 id="h-att">Boat attitude, live 3D <span class="chip off" id="hw-link">ESP32 not connected</span></h2>
+    <div class="scene nolive" id="scene">
+      <div id="view"><div class="water"></div><div id="model"></div></div>
+      <div class="scene-msg" id="scene-msg">Waiting for the boat ESP32 (it connects to this laptop on port 8000, path /ws).</div>
+    </div>
+    <div class="att">
+      <div class="tile"><span>Roll</span><b id="hw-roll">-</b></div>
+      <div class="tile"><span>Pitch</span><b id="hw-pitch">-</b></div>
+      <div class="tile"><span>Yaw (relative)</span><b id="hw-yaw">-</b></div>
+    </div>
+    <div class="opts">
+      <label><input type="checkbox" id="inv-roll"> Invert roll</label>
+      <label><input type="checkbox" id="inv-pitch"> Invert pitch</label>
+      <label><input type="checkbox" id="inv-yaw"> Invert yaw</label>
+      <button id="hw-zero" class="small">Zero gyro (keep still 2 s)</button>
+    </div>
+    <p class="note">Roll and pitch come from the MPU6050 (gravity-referenced). Yaw is integrated gyro: it drifts and has no compass.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="h-drive">
+    <h2 id="h-drive">Motor control <span class="chip plain" id="hw-armchip">Disarmed</span></h2>
+    <div class="buttons">
+      <button id="hw-arm" class="big" style="flex:1">Arm motors</button>
+      <button id="hw-unlatch" class="big" hidden>Release boat e-stop</button>
+    </div>
+    <div class="pad" id="pad">
+      <span></span><button data-k="f" aria-label="Forward">&#9650;</button><span></span>
+      <button data-k="l" aria-label="Turn to port">&#9664;</button><button class="halt" id="hw-stop">STOP</button><button data-k="r" aria-label="Turn to starboard">&#9654;</button>
+      <span></span><button data-k="b" aria-label="Backward">&#9660;</button><span></span>
+    </div>
+    <div class="row"><span>Speed limit</span><b id="hw-speedv">-</b></div>
+    <input type="range" id="hw-speed" min="10" max="100" step="5" value="50" aria-label="Speed limit in percent">
+    <div class="mbar"><span>Left</span><div class="trk"><i id="hw-ml"></i></div><b id="hw-mlv">-</b></div>
+    <div class="mbar"><span>Right</span><div class="trk"><i id="hw-mr"></i></div><b id="hw-mrv">-</b></div>
+    <p class="note">Hold a button, or W A S D / arrow keys, to drive; release to stop. The boat stops by itself if this page closes or the Wi-Fi drops.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="h-servo">
+    <h2 id="h-servo">Servo and controller <span class="chip plain">GPIO18</span></h2>
+    <div class="row"><span>Servo angle</span><b id="hw-servov">-</b></div>
+    <input type="range" id="hw-servo" min="0" max="180" step="1" value="90" aria-label="Servo angle in degrees">
+    <div class="buttons">
+      <button class="small" data-servo="45">45&deg;</button>
+      <button class="small" data-servo="90">Centre 90&deg;</button>
+      <button class="small" data-servo="135">135&deg;</button>
+    </div>
+    <div style="margin-top:8px">
+      <div class="row"><span>Controller</span><b id="hw-sys">-</b></div>
+      <div class="row"><span>Wi-Fi</span><b id="hw-wifi">-</b></div>
+      <div class="row"><span>IMU</span><b id="hw-imu">-</b></div>
+      <div class="row"><span>GPS</span><b id="hw-gps">-</b></div>
+      <div class="row"><span>Last rejection</span><b id="hw-err" style="font-size:13px">-</b></div>
+    </div>
+  </section>
+</div>
+
 <div class="below">
   <section class="panel" aria-labelledby="h-cfg">
     <h2 id="h-cfg">Configuration <span class="chip plain">Placeholders, not specifications</span></h2>
@@ -341,7 +431,7 @@
   </section>
 </div>
 <footer>
-  Software simulation only, apart from the camera. Nothing here proves physical safety: motor safety must be enforced independently by the control ESP32. PID steering and hardware mode are future work.
+  Software simulation, apart from the camera and the "live" boat hardware panels (real control ESP32). Nothing here proves physical safety: motor safety must be enforced independently by the control ESP32. PID steering and hardware mode are future work.
 </footer>
 
 <nav class="demobar" aria-label="Demo scenarios (simulation only)">
@@ -488,6 +578,118 @@ function renderCamera(c){
   if (on && c.ignored) meta.push(["Ignored", `${esc(c.ignored)} unreadable`]);
   $("cammeta").innerHTML = meta.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
 }
+
+// ---- real boat hardware: control ESP32 (motors, servo, IMU) ----
+async function boat(name, body){
+  try {
+    const r = await fetch("/api/command/boat-" + name, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body || {})});
+    return await r.json();
+  } catch (e) { return {ok: false, message: "Cannot reach the dashboard server."}; }
+}
+function cuboid(w, h, d, x, y, z, c){   // a box made of six faces, centred on (x, y, z); CSS axes: x right, y down, z to the viewer
+  const face = (fw, fh, tf, shade) => `<i style="width:${fw}px;height:${fh}px;left:${-fw / 2}px;top:${-fh / 2}px;transform:${tf};background:${c};filter:brightness(${shade})"></i>`;
+  return `<div class="cub" style="transform:translate3d(${x}px,${y}px,${z}px)">` +
+    face(w, h, `translateZ(${d / 2}px)`, 1) + face(w, h, `rotateY(180deg) translateZ(${d / 2}px)`, 1.25) +
+    face(d, h, `rotateY(90deg) translateZ(${w / 2}px)`, .8) + face(d, h, `rotateY(-90deg) translateZ(${w / 2}px)`, .8) +
+    face(w, d, `rotateX(90deg) translateZ(${h / 2}px)`, 1.1) + face(w, d, `rotateX(-90deg) translateZ(${h / 2}px)`, .6) + `</div>`;
+}
+// Catamaran: bow points away from the viewer (-z), starboard is +x. Red = port bow, green = starboard bow.
+$("model").innerHTML =
+  cuboid(26, 22, 170, -52, 8, 0, "#1d4263") + cuboid(26, 22, 170, 52, 8, 0, "#1d4263") +
+  cuboid(26, 22, 14, -52, 8, -92, "#b3202d") + cuboid(26, 22, 14, 52, 8, -92, "#12865a") +
+  cuboid(130, 6, 96, 0, -6, 0, "#2b5d86") + cuboid(52, 26, 56, 0, -22, 6, "#1c6f94") + cuboid(16, 12, 12, 0, -24, -28, "#38bdf0");
+let hw = null, yawShown = 0, lastYaw = null, armed = false;
+const held = new Set(), INV = ["roll", "pitch", "yaw"];
+INV.forEach(k => { const el = $("inv-" + k); el.checked = localStorage.getItem("inv-" + k) === "1"; el.onchange = () => localStorage.setItem("inv-" + k, el.checked ? "1" : "0"); });
+const inv = k => $("inv-" + k).checked ? -1 : 1;
+function bar(el, v){ v = Math.max(-1, Math.min(1, v || 0)); el.style.left = (v < 0 ? 50 + v * 50 : 50) + "%"; el.style.width = Math.abs(v) * 50 + "%"; el.style.background = v < 0 ? "var(--amber)" : "var(--green)"; }
+function renderBoat(b){
+  hw = b;
+  const t = b.telemetry, live = b.connected, a = b.attitude;
+  $("hw-link").textContent = live ? `Live from ESP32${b.fw ? " (fw " + b.fw + ")" : ""}` : "ESP32 not connected";
+  $("hw-link").className = "chip " + (live ? "live" : "off");
+  $("scene").classList.toggle("nolive", !a);
+  $("scene-msg").textContent = !live ? "Waiting for the boat ESP32 (it connects to this laptop on port 8000, path /ws)."
+    : !a ? "ESP32 connected, but the MPU6050 is not answering (check SDA 21, SCL 22, 3V3, GND)." : "";
+  if (a) {
+    const roll = a.roll * inv("roll"), pitch = a.pitch * inv("pitch"), yaw = a.yaw * inv("yaw");
+    if (lastYaw !== null) { let d = yaw - lastYaw; d -= 360 * Math.round(d / 360); yawShown += d; } else yawShown = yaw;   // no spin at +/-180
+    lastYaw = yaw;
+    // vessel frame: roll + = starboard down, pitch + = bow up, yaw + = bow to starboard
+    $("model").style.transform = `rotateY(${-yawShown}deg) rotateX(${-pitch}deg) rotateZ(${roll}deg)`;
+    $("hw-roll").textContent = f(roll, "°"); $("hw-pitch").textContent = f(pitch, "°"); $("hw-yaw").textContent = f(yaw, "°");
+  } else { lastYaw = null; ["hw-roll", "hw-pitch", "hw-yaw"].forEach(id => $(id).textContent = "-"); }
+  const m = t && t.motors, sys = t && t.sys, estop = !!(sys && sys.estop);
+  armed = !!(m && m.armed);
+  if (!armed && held.size) held.clear();
+  $("hw-armchip").textContent = !live ? "No link" : estop ? "EMERGENCY STOP" : sys.failsafe ? "Watchdog stop" : armed ? "ARMED" : "Disarmed";
+  $("hw-armchip").className = "chip " + (estop ? "off" : armed ? "live" : "plain");
+  $("hw-arm").textContent = armed ? "Disarm motors" : "Arm motors";
+  $("hw-arm").className = "big" + (armed ? " armed-on" : "");
+  $("hw-arm").disabled = !live || estop;
+  $("hw-unlatch").hidden = !estop;
+  document.querySelectorAll("#pad button[data-k]").forEach(el => { el.disabled = !armed; el.classList.toggle("held", held.has(el.dataset.k)); });
+  $("hw-stop").disabled = !live;
+  bar($("hw-ml"), m && m.left); bar($("hw-mr"), m && m.right);
+  $("hw-mlv").textContent = m ? m.left.toFixed(2) : "-"; $("hw-mrv").textContent = m ? m.right.toFixed(2) : "-";
+  if (m && document.activeElement !== $("hw-speed")) $("hw-speed").value = Math.round(m.limit * 100);
+  $("hw-speedv").textContent = m ? Math.round(m.limit * 100) + " %" : "-";
+  const sv = t && t.servos && t.servos[0];
+  if (sv !== undefined && sv !== null && document.activeElement !== $("hw-servo")) $("hw-servo").value = sv;
+  $("hw-servov").textContent = sv === undefined || sv === null ? "-" : sv + "°";
+  ["hw-speed", "hw-servo", "hw-zero"].forEach(id => $(id).disabled = !live);
+  document.querySelectorAll("[data-servo]").forEach(el => el.disabled = !live || estop);
+  $("hw-sys").textContent = sys ? `up ${sys.uptime_s} s, last reset ${sys.reset}` : "-";
+  $("hw-wifi").textContent = sys ? `${sys.ip}, ${sys.rssi} dBm` : "-";
+  const imu = t && t.imu;
+  $("hw-imu").textContent = !imu ? "-" : imu.ok ? `OK, ${imu.temp} °C, ${imu.errors} read errors` : "NOT ANSWERING";
+  $("hw-imu").className = imu && !imu.ok ? "bad" : "";
+  const g = t && t.gps;
+  $("hw-gps").textContent = !g ? "-" : g.fix ? `${g.lat.toFixed(5)}, ${g.lon.toFixed(5)} (${g.sats} sats)` : g.receiving ? `Searching, ${g.sats} sats` : "No data from module";
+  $("hw-err").textContent = b.last_error || "-";
+}
+async function pollBoat(){
+  try { renderBoat(await (await fetch("/api/boat")).json()); } catch (e) { /* refresh() shows the server banner */ }
+}
+setInterval(pollBoat, 100); pollBoat();
+
+// Hold-to-drive: the command is repeated while a direction is held; releasing (or leaving the page) stops.
+function driveNow(){
+  if (!held.size) return;
+  const thr = (held.has("f") ? 1 : 0) - (held.has("b") ? 1 : 0), st = (held.has("r") ? 1 : 0) - (held.has("l") ? 1 : 0);
+  boat("drive", {throttle: thr, steer: thr ? st * 0.5 : st * 0.6});
+}
+setInterval(driveNow, 150);
+function hold(k, on){
+  if (on) { if (!armed || held.has(k)) return; held.add(k); driveNow(); }
+  else if (held.delete(k) && !held.size) boat("stop");
+}
+function releaseAll(){ if (held.size) { held.clear(); boat("stop"); } }
+document.querySelectorAll("#pad button[data-k]").forEach(el => {
+  el.onpointerdown = e => { e.preventDefault(); hold(el.dataset.k, true); };
+  el.onpointerup = el.onpointerleave = el.onpointercancel = () => hold(el.dataset.k, false);
+});
+const KEYS = {w: "f", arrowup: "f", s: "b", arrowdown: "b", a: "l", arrowleft: "l", d: "r", arrowright: "r"};
+document.addEventListener("keydown", e => {
+  const k = KEYS[e.key.toLowerCase()];
+  if (!k || !armed || e.repeat || /^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName)) return;
+  e.preventDefault(); hold(k, true);
+});
+document.addEventListener("keyup", e => { const k = KEYS[e.key.toLowerCase()]; if (k) hold(k, false); });
+window.addEventListener("blur", releaseAll);
+document.addEventListener("visibilitychange", () => { if (document.hidden) releaseAll(); });
+$("hw-stop").onclick = () => { held.clear(); boat("stop"); };
+$("hw-arm").onclick = async () => {
+  const j = await boat("arm", {value: !armed});
+  if (!j.ok) { $("msg").textContent = j.message; $("msg").style.color = "var(--amber)"; }
+};
+$("hw-unlatch").onclick = () => { if (confirm("Release the boat's emergency stop?\n\nThe motors stay disarmed until you press Arm.")) boat("estop_reset"); };
+$("hw-zero").onclick = () => { boat("imu_zero"); lastYaw = null; };
+$("hw-speed").onchange = e => { boat("speed", {value: Number(e.target.value) / 100}); e.target.blur(); };
+let servoSent = 0;
+$("hw-servo").oninput = e => { const now = Date.now(); if (now - servoSent > 80) { servoSent = now; boat("servo", {angle: Number(e.target.value)}); } };
+$("hw-servo").onchange = e => { boat("servo", {angle: Number(e.target.value)}); e.target.blur(); };
+document.querySelectorAll("[data-servo]").forEach(el => el.onclick = () => boat("servo", {angle: Number(el.dataset.servo)}));
 
 // ---- top status bar: a plain-language summary of state that is already on the page (display only) ----
 function setPill(id, text, cls){ const el = $(id); el.querySelector("b").textContent = text; el.className = "pill " + cls; }

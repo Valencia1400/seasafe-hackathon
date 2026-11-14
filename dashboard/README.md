@@ -19,7 +19,8 @@ Open http://127.0.0.1:8000. Press **Esc** anywhere on the page for an emergency 
 | Camera view: annotated stream + detections from `vision/viewer.py` (`--camera-viewer`) | Implemented and tested with mocks; not yet run against the real viewer. Without a viewer address a placeholder is shown; webcam/file input is labelled TEST |
 | Provisional limits (rudder, throttle) and IMU mounting: `opsdash/config.py` or `--config file.json` | Implemented; values are placeholders, shown as UNCONFIRMED |
 | Message format | Follows the PROPOSED protocol in `docs/architecture.md`; not agreed with Person 2, not in firmware |
-| Hardware mode (real ESP32 data and commands) | **Future**: needs the agreed protocol and tested equipment |
+| Real control ESP32: live 3D attitude from the MPU6050, motor control (arm, hold-to-drive, speed limit), servo control, E-STOP forwarded | Implemented in `opsdash/boatlink.py`; tested with a stand-in ESP32 over real sockets, **not yet with the real board** |
+| Mission, GPS track and leak driven by the real ESP32 | **Future**: those panels still show the simulation |
 | PID steering | Not implemented (optional stretch) |
 
 ## Run the complete demo
@@ -34,6 +35,21 @@ cd dashboard
 python run_operator.py --camera-viewer http://127.0.0.1:8001            # omit the flag to run without a camera
 ```
 Open http://127.0.0.1:8000. If the viewer runs on another laptop, start it with `--host 0.0.0.0` (same trusted network only: it has no login) and give the dashboard that laptop's address, e.g. `--camera-viewer http://192.168.1.20:8001`. The video is loaded by your browser, so the browser must be able to reach the viewer.
+
+## Real boat ESP32 (motors, servo, gyroscope)
+Firmware: `electronics/firmware/seaguardian_revC` (pinout and flashing steps in its README). The ESP32 dials **out** to the laptop, so the dashboard must listen on the network:
+
+```bash
+python run_operator.py --host 0.0.0.0 --camera-viewer http://127.0.0.1:8001
+```
+It prints the address to put in the firmware's `secrets.h` (`WS_HOST`). Laptop and ESP32 must be on the same 2.4 GHz Wi-Fi, and the network must let devices talk to each other (some guest networks block this; a phone hotspot does not).
+
+- **Boat attitude, live 3D:** the model follows roll, pitch and yaw from the MPU6050 ten times a second. If it tilts the wrong way for how the sensor is mounted, tick *Invert roll / pitch / yaw* (remembered in the browser) or set the `imu_*` values in the config. Yaw is integrated gyro: it drifts.
+- **Motor control:** *Arm motors*, then hold the arrow buttons or W A S D / arrow keys. Releasing, switching tab or closing the page stops the motors; the page's keep-alive stops when no browser is open, so the firmware's 1 s watchdog then stops the boat on its own.
+- **Servo:** slider 0-180 degrees on GPIO18.
+- **E-STOP** (button or Esc) also latches the real boat's emergency stop; *Reset* releases it, and the motors stay disarmed until *Arm* is pressed again.
+- `--host 0.0.0.0` has no login: anyone on the same Wi-Fi can open the page and drive. Use it on a network you trust.
+- Try it without hardware: `python tests/test_opsdash_boatlink.py 127.0.0.1 8000` connects a clearly labelled fake ESP32 with moving attitude.
 
 ## Camera panel
 - **Video:** the viewer's annotated `/stream.mjpg`, shown by the browser. The dashboard never opens the ESP32 stream (it serves one client only).
@@ -75,6 +91,7 @@ Unknown keys and invalid values are rejected. Do not treat the defaults as speci
 | `opsdash/simulator.py` | Simulated control ESP32 with its own safety rules |
 | `opsdash/protocol.py` | Message format (proposed) and timing constants |
 | `opsdash/console.py` | Ties mission, simulator and scenarios together; no web code |
+| `opsdash/boatlink.py` | WebSocket link to the real control ESP32 (standard library only): telemetry in, commands and keep-alive out |
 | `opsdash/camera.py` | Polls and validates the viewer's `/detections` (stale/malformed handling, labels, events) |
 | `opsdash/config.py` | Provisional limits, IMU mounting, camera address |
 | `opsdash/server.py`, `opsdash/static/index.html` | Local web server and the page |

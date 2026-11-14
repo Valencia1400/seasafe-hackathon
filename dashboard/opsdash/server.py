@@ -1,14 +1,16 @@
 """Tiny local web server for the operator dashboard (Python standard library only).
 
-Hardware mode is future work: it needs the protocol confirmed by the electrical
-engineer and tested equipment. Only SIMULATION mode exists.
+The mission, GPS and leak data are still SIMULATED. The real control ESP32 (motors,
+servo, IMU) connects to ws://<this laptop>:<port>/ws and is handled by boatlink.py.
 """
 import json
+import socket
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
+from .boatlink import BoatLink
 from .camera import CameraMonitor
 from .config import Config
 from .console import OperatorConsole
@@ -25,6 +27,7 @@ class Dashboard:
         config = config or Config()
         self.camera = CameraMonitor(config.camera_viewer_url, log=self._log_event)
         self.console = OperatorConsole(time.monotonic(), config=config, camera=self.camera)
+        self.boat = BoatLink(config, log=self._log_event)   # real control ESP32, separate from the simulation
         self.running = True
 
     def _log_event(self, text, level="info"):
@@ -43,6 +46,11 @@ class Dashboard:
         if name in ("camera-on", "camera-off"):   # outside self.lock: the camera logs through _log_event
             ok, msg = self.camera.set_enabled(name == "camera-on")
             return {"ok": ok, "message": msg}
+        if name.startswith("boat-"):               # outside self.lock: the boat link logs through _log_event
+            ok, msg = self.boat.command(name[len("boat-"):], body)
+            return {"ok": ok, "message": msg}
+        if name == "estop":                        # the dashboard E-STOP also latches the real boat's emergency stop
+            self.boat.command("estop", {})
         with self.lock:
             if name == "start":
                 ok, msg = c.start(now)
@@ -52,6 +60,7 @@ class Dashboard:
                 ok, msg = c.estop(now)
             elif name == "reset":
                 ok, msg = c.reset(now, confirmed)
+                release_boat = ok
             elif name == "rudder":
                 try:
                     ok, msg = c.set_rudder(now, body.get("deg", 0))
@@ -61,6 +70,8 @@ class Dashboard:
                 ok, msg = c.scenario(now, name[len("scenario-"):], confirmed)
             else:
                 ok, msg = False, f"Unknown command {name}"
+        if name == "reset" and release_boat:       # still disarmed afterwards: Arm must be pressed again
+            self.boat.command("estop_reset", {})
         return {"ok": ok, "message": msg}
 
     def snapshot(self):
@@ -85,6 +96,12 @@ def make_handler(dash):
         def do_GET(self):
             if self.path in ("/", "/index.html"):
                 self._reply(200, (STATIC / "index.html").read_bytes(), "text/html; charset=utf-8")
+            elif self.path == "/ws":
+                dash.boat.serve(self)              # the boat ESP32's WebSocket; returns when it disconnects
+                self.close_connection = True
+            elif self.path == "/api/boat":
+                dash.boat.browser_seen()
+                self._reply(200, json.dumps(dash.boat.snapshot()))
             elif self.path == "/api/state":
                 self._reply(200, json.dumps(dash.snapshot()))
             else:
@@ -106,12 +123,29 @@ def make_handler(dash):
     return Handler
 
 
+def lan_address():
+    """This laptop's address on the local network (no packet is sent)."""
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("10.255.255.255", 1))
+        return s.getsockname()[0]
+    except OSError:
+        return None
+    finally:
+        s.close()
+
+
 def serve(host="127.0.0.1", port=8000, config=None):
     dash = Dashboard(config)
     threading.Thread(target=dash.loop, daemon=True).start()
     dash.camera.start()          # own thread: a slow or dead viewer cannot block the dashboard
+    threading.Thread(target=dash.boat.keepalive_loop, daemon=True).start()
     server = ThreadingHTTPServer((host, port), make_handler(dash))
-    print(f"SeaGuardian operator dashboard (SIMULATION) on http://{host}:{port}  - Ctrl+C to stop")
+    print(f"SeaGuardian operator dashboard on http://{host}:{port}  - Ctrl+C to stop")
+    if host in ("127.0.0.1", "localhost"):
+        print("Boat ESP32: cannot connect to this address. Restart with --host 0.0.0.0 to use the real boat.")
+    else:
+        print(f"Boat ESP32: set WS_HOST \"{lan_address()}\" and WS_PORT {port} in the firmware's secrets.h / Config.h")
     try:
         server.serve_forever()
     except KeyboardInterrupt:
@@ -119,4 +153,5 @@ def serve(host="127.0.0.1", port=8000, config=None):
     finally:
         dash.running = False
         dash.camera.stop()
+        dash.boat.stop()
         server.server_close()
