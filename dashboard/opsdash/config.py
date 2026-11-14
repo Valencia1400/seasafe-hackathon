@@ -14,14 +14,14 @@ class Config:
     tilt_warning_deg: float = 30.0
     # Rudder servo: the page can only move it this far each way from the centre (degrees at the servo).
     servo_centre_deg: float = 90.0
-    servo_limit_deg: float = 10.0
+    servo_limit_deg: float = 6.0
     # IMU mounting: maps raw sensor values to the vessel frame
     # (vessel frame: roll + = starboard side down, pitch + = bow up, yaw rate + = turning to starboard).
     # The page also has Invert roll / pitch / yaw tick boxes for quick changes.
     imu_roll_sign: int = 1
     imu_pitch_sign: int = 1
-    imu_yaw_sign: int = 1
-    imu_swap_roll_pitch: bool = False   # True if the board's X axis points to the side instead of forward
+    imu_yaw_sign: int = -1              # as mounted on the boat (14 Nov): yaw inverted, roll and pitch swapped
+    imu_swap_roll_pitch: bool = True    # True if the board's X axis points to the side instead of forward
     # Address of vision/viewer.py (annotated camera stream + detections), e.g. "http://127.0.0.1:8001".
     # None = no camera: the dashboard shows a placeholder. See vision/INTEGRATION.md.
     camera_viewer_url: str = None

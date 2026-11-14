@@ -3,498 +3,321 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>SeaGuardian Operator Dashboard</title>
+<title>SeaGuardian</title>
 <style>
-  /* Night-chart palette: deep navy, restrained cyan, and colour only where it means something:
-     green = normal, amber = warning, red = fault / emergency stop, slate = unavailable.
-     System fonts only, so the page works offline (Bahnschrift on Windows, DIN Alternate on macOS). */
-  :root{
-    --bg:#06101b; --panel:#0d1d2f; --panel-2:#112640; --line:#1c3652; --line-2:#2b4d72;
-    --text:#e7f0f8; --dim:#8ea7bc; --mute:#6f879c;
-    --cyan:#38bdf0; --green:#2fd48c; --amber:#f2b134; --red:#ff4d5a;
-    --sim:#9fb7cc; --sim-line:#4a6d90;
-    --num:"Bahnschrift","DIN Alternate","DIN Condensed","Segoe UI",system-ui,sans-serif;
-    --ui:"Segoe UI","Avenir Next",system-ui,-apple-system,sans-serif;
-    --hatch:repeating-linear-gradient(135deg,#35577b 0 4px,#1a2f46 4px 8px);
-  }
+  /* Plain instrument panel: flat colours, 1px rules, no cards, no effects. One screen, no page scroll on a laptop.
+     Colour only carries meaning: green = fine, amber = attention, red = stopped / fault. System fonts, works offline. */
+  :root{--bg:#0c0f12;--rule:#2a3138;--text:#dde2e7;--dim:#8b959f;--green:#3fb950;--amber:#d9a21b;--red:#e5484d;--btn:#1a2026;
+    --num:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
   *{box-sizing:border-box}
-  html{background:var(--bg)}
-  body{margin:0;min-height:100vh;padding-bottom:64px;color:var(--text);font:15px/1.45 var(--ui);
-    background:linear-gradient(180deg,#081525 0,#050d17 100%)}
-  code{font:12.5px/1 Consolas,Menlo,monospace;background:#16304a;color:#bcd6ea;padding:2px 5px;border-radius:4px}
-  :focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;
+    display:flex;flex-direction:column}
   [hidden]{display:none !important}
+  :focus-visible{outline:2px solid var(--text);outline-offset:1px}
+  .ok{color:var(--green)} .warn{color:var(--amber)} .bad{color:var(--red)}
+  b{font-family:var(--num);font-weight:600;font-variant-numeric:tabular-nums}
 
-  /* ---------- top bar: five-second status ---------- */
-  .top{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px 18px;padding:8px 16px;
-    background:#081523;border-bottom:1px solid var(--line)}
-  .brand{display:flex;align-items:center;gap:11px}
-  .brand svg{width:30px;height:30px}
-  .wordmark{font:700 23px/1 var(--num);letter-spacing:.03em}
-  .brand small{display:block;margin-top:3px;font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
-  .status{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
-  .pill{display:flex;align-items:center;gap:9px;padding:6px 12px 6px 10px;border:1px solid var(--line-2);border-radius:9px;background:var(--panel);min-width:0}
-  .pill i{flex:0 0 auto;width:10px;height:10px;border-radius:50%;background:var(--mute)}
-  .pill small{display:block;font-size:10px;letter-spacing:.13em;text-transform:uppercase;color:var(--dim);line-height:1.1}
-  .pill b{display:block;font:700 15px/1.15 var(--num);letter-spacing:.02em;white-space:nowrap}
-  .pill.ok i{background:var(--green);box-shadow:0 0 0 3px rgba(47,212,140,.18)}
-  .pill.warn i{background:var(--amber);box-shadow:0 0 0 3px rgba(242,177,52,.2)}
-  .pill.bad i{background:var(--red);box-shadow:0 0 0 3px rgba(255,77,90,.22)}
-  .pill.bad{border-color:#7b2a33}
-  .pill.info i{background:var(--cyan);box-shadow:0 0 0 3px rgba(56,189,240,.18)}
-  .pill.sim{border-style:dashed;border-color:var(--sim-line);background:transparent}
-  .pill.sim i{background:var(--sim)}
-  .toprt{text-align:right;color:var(--dim);font-size:12px;line-height:1.4}
-  .toprt .clock{display:block;font:700 18px/1.1 var(--num);color:var(--text);letter-spacing:.04em}
-  .key{display:inline-flex;align-items:center;gap:6px}
-  .swatch{width:20px;height:11px;border-radius:2px;background:var(--hatch)}
+  header{display:flex;gap:6px 22px;align-items:baseline;flex-wrap:wrap;padding:7px 12px;border-bottom:1px solid var(--rule)}
+  header h1{margin:0;font-size:15px;font-weight:700}
+  header span{color:var(--dim)}
+  header span b{color:var(--text)}
+  header span b.ok{color:var(--green)} header span b.warn{color:var(--amber)} header span b.bad{color:var(--red)}
+  #clock{margin-left:auto;color:var(--dim);font-family:var(--num)}
+  #alerts{padding:5px 12px;border-bottom:1px solid var(--rule);color:var(--amber);font-weight:600}
+  #alerts.bad{background:var(--red);color:#fff}
 
-  .alerts{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:0 10px;margin:0 16px}
-  #banner,#warnbar{display:none;margin:10px 0 0;padding:9px 14px;border-radius:9px;font:700 16px/1.3 var(--ui)}
-  #banner{background:#b3202d;color:#fff;border:1px solid #ff7a84}
-  #warnbar{background:var(--amber);color:#1a1202;font-size:15px}
+  main{flex:1 1 0;display:grid;grid-template-columns:300px minmax(0,1fr) 340px;min-height:0}
+  main>section{min-width:0;min-height:0;display:flex;flex-direction:column}
+  main>section+section{border-left:1px solid var(--rule)}
+  .blk{padding:10px 12px;border-bottom:1px solid var(--rule)}
+  .blk:last-child{border-bottom:0}
+  h2{margin:0 0 7px;font-size:12px;font-weight:600;color:var(--dim);display:flex;justify-content:space-between;gap:8px}
+  h2 b{color:var(--text)}
+  h2 b.ok{color:var(--green)} h2 b.warn{color:var(--amber)} h2 b.bad{color:var(--red)}
+  .note{margin:6px 0 0;color:var(--dim);font-size:12px}
+  #msg{min-height:17px;margin-top:6px;font-size:12.5px;color:var(--amber)}
 
-  /* ---------- layout: camera + mission on top, instruments in a band below ---------- */
-  .dash{display:grid;gap:10px;padding:10px 16px 0;align-items:start;grid-template-columns:minmax(0,1.9fr) minmax(310px,1fr) minmax(290px,.9fr)}
-  .col{display:grid;gap:10px;min-width:0}
-  .below{display:grid;gap:12px;padding:12px 16px 0;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr)}
-  @media (max-width:1100px){
-    .estop{width:96px;height:96px;border-width:5px}
-    .estop-cap{font-size:12px}
-    .estop-key{bottom:9px}
-    .demobar .lbl{display:none}
-    .demobar button{font-size:11.5px;padding:7px 7px}
-    .toprt .key{display:none}
-  }
-  @media (max-width:1280px){
-    .dash{grid-template-columns:minmax(0,1.5fr) minmax(270px,1fr) minmax(240px,.9fr)}
-    .demobar{gap:6px;padding:6px 12px}
-    .demobar button{font-size:12px;padding:7px 9px}
-    .demobar .lead{font-size:10.5px;letter-spacing:.08em;margin-right:2px}
-    .pill{padding:5px 9px 5px 8px}
-    .pill b{font-size:14px}
-  }
-  @media (max-width:960px){
-    .dash{grid-template-columns:repeat(2,minmax(0,1fr))}
-    .cam{grid-column:1 / -1}
-    .below{grid-template-columns:1fr}
-    .top{grid-template-columns:1fr}
-    .status{justify-content:flex-start}
-    .toprt{text-align:left}
-  }
+  button{font:600 13px/1 inherit;color:var(--text);background:var(--btn);border:1px solid var(--rule);border-radius:2px;padding:9px 10px;cursor:pointer}
+  button:hover:not(:disabled){border-color:var(--dim)}
+  button:disabled{opacity:.35;cursor:not-allowed}
+  button.on{background:var(--green);border-color:var(--green);color:#06210d}
+  .three{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+  #b-estop{width:100%;padding:16px 10px;font-size:17px;letter-spacing:.02em;background:var(--red);border-color:var(--red);color:#fff}
+  #b-estop:hover{background:#f05a5f}
+  #b-estop small{display:block;margin-top:5px;font:500 11px/1 inherit;opacity:.85}
+  #b-reset{width:100%;margin-top:6px}
+  #hw-arm{width:100%}
+  #hw-arm.armed{background:var(--amber);border-color:var(--amber);color:#201600}
+  #p-motors{flex:1 1 auto;display:flex;flex-direction:column}
+  .pad{flex:1 1 auto;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,minmax(44px,1fr));gap:6px;margin:8px 0}
+  .pad button{padding:0;font-size:17px;touch-action:none;user-select:none}
+  .pad .halt{font-size:12px;color:var(--red)}
+  input[type=range]{width:100%;margin:2px 0 6px;accent-color:var(--text)}
+  .mbar{display:grid;grid-template-columns:2.8em 1fr 3.2em;gap:8px;align-items:center;font-size:12.5px;color:var(--dim);margin:3px 0}
+  .mbar .trk{position:relative;height:8px;background:var(--btn);border:1px solid var(--rule)}
+  .mbar .trk::after{content:"";position:absolute;left:50%;top:-3px;bottom:-3px;width:1px;background:var(--dim)}
+  .mbar .trk i{position:absolute;top:0;bottom:0;background:var(--green)}
+  .mbar b{color:var(--text);text-align:right}
 
-  .panel{position:relative;min-width:0;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 14px 10px}
-  .panel.sim::before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:4px;border-radius:0 3px 3px 0;background:var(--hatch)}
-  .panel h2{margin:0 0 8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-    font:600 12px/1.2 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
-  .chip{font:600 10px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;padding:4px 8px;border-radius:999px;background:#16304a;color:#a8c3d9;white-space:nowrap}
-  .chip.sim{background:transparent;border:1px dashed var(--sim-line);color:var(--sim)}
-  .chip.plain{background:transparent;border:1px solid var(--line-2);color:var(--dim);letter-spacing:.04em;text-transform:none;font-weight:500}
-  .nodata{display:none;font:700 10px/1 var(--ui);letter-spacing:.08em;text-transform:uppercase;color:#fff;background:#b3202d;padding:4px 8px;border-radius:999px}
-  .stale .nodata{display:inline-block}
-  .stale .val{opacity:.3}
-  .note{color:var(--dim);font-size:12.5px;line-height:1.5;margin:8px 0 0}
-  .ok{color:var(--green)} .bad,.fault{color:var(--red)} .warn{color:var(--amber)}
-
-  .row{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:5px 0;border-bottom:1px solid #16304a}
-  .row:last-child{border-bottom:0}
-  .row span{color:var(--dim);font-size:14px}
-  .row b{font:700 16px/1.25 var(--num);text-align:right;font-variant-numeric:tabular-nums}
-
-  button{font:600 14px/1 var(--ui);border-radius:8px;padding:11px 15px;border:1px solid var(--line-2);background:#13293f;color:var(--text);cursor:pointer}
-  button:hover:not(:disabled){border-color:var(--cyan);background:#17344f}
-  button:disabled{opacity:.32;cursor:not-allowed}
-  .buttons{display:flex;flex-wrap:wrap;gap:8px}
-  .go{background:#12865a;border-color:#2fd48c;color:#fff}
-  .go:hover:not(:disabled){background:#17a06d;border-color:#5ee6ae}
-  .big{font-size:14.5px;padding:11px 8px;white-space:nowrap}
-  .small{font-size:13px;padding:8px 11px}
-  .port{border-color:#8a2f39;color:#ff8b94}
-  .stbd{border-color:#1c7a57;color:#5fe0aa}
-
-  /* ---------- camera ---------- */
-  .input-badge{margin:0 0 10px;padding:8px 12px;border-radius:8px;font-weight:600;font-size:13.5px;line-height:1.35}
-  .input-badge.real{background:rgba(47,212,140,.12);color:#8ff0c3;border:1px solid rgba(47,212,140,.45)}
-  .input-badge.test{background:rgba(242,177,52,.14);color:#ffd88a;border:1px solid rgba(242,177,52,.6);font-size:15px;font-weight:700}
-  .frame{position:relative;width:100%;aspect-ratio:4/3;max-height:calc(100vh - 372px);min-height:250px;margin:0 auto;background:#030a12;border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
-  .cam-foot{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(170px,.7fr);gap:6px 22px;margin-top:12px;align-items:start}
-  #camimg{width:100%;height:100%;object-fit:contain;display:none}
-  .frame-msg{position:absolute;inset:0;display:grid;place-content:center;gap:8px;padding:20px;text-align:center;color:#b9cddd;font-size:14px;background:rgba(3,10,18,.78)}
-  .frame-msg b{display:block;font:700 26px/1.1 var(--num);color:#fff;letter-spacing:.02em}
-  .frame-msg.bad b{color:#ff8a93}
-  .frame-msg.warn b{color:var(--amber)}
-  .frame-msg code{background:#1a3350;color:#cfe3f3}
-  .cam-toggle{margin-left:auto}
-  .cam-foot h3{margin:0 0 8px;font:600 12px/1.2 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
-  .cam-foot h3 span{font-weight:400;letter-spacing:.02em;text-transform:none;color:var(--mute)}
-  .dets{list-style:none;margin:0;padding:0;display:grid;gap:9px}
-  .dets li{display:grid;grid-template-columns:1fr 3.2em;grid-template-areas:"name pct" "bar bar";gap:4px 8px;align-items:baseline;color:var(--amber);font-weight:600}
-  .dets li.person{color:#ff7b85}
-  .dets li>span:first-child{grid-area:name}
-  .dets b{grid-area:pct;font:700 20px/1 var(--num);text-align:right}
-  .dets .bar{grid-area:bar;height:6px;border-radius:3px;background:#1a3350}
-  .dets .bar i{display:block;height:100%;border-radius:3px;background:currentColor}
-  .empty{margin:0;color:var(--dim)}
-  #cammeta{display:grid;grid-template-columns:auto auto;gap:3px 14px;margin:0;font-size:13px}
-  #cammeta dt{color:var(--dim)}
-  #cammeta dd{margin:0;font:700 14px/1.3 var(--num);text-align:right}
-  .cam-foot .cam-note{grid-column:1 / -1;text-align:center;max-width:70ch;margin:8px auto 0}
-
-  /* ---------- mission + emergency stop ---------- */
-  .mission-body{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 14px;align-items:center}
-  .label-sm{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
-  #state{font:700 clamp(30px,3.4vw,46px)/1 var(--num);letter-spacing:.03em;margin:2px 0 0}
-  #state.READY{color:var(--cyan)} #state.RUNNING{color:var(--green)} #state.STOPPED{color:#b8cadb} #state.FAULT{color:var(--red)}
-  #elapsed{color:var(--dim);font-size:13px;min-height:17px}
-  .estop{grid-row:1;grid-column:2;position:relative;width:112px;height:112px;padding:0;border-radius:50%;border:6px solid #f2c200;
-    background:radial-gradient(circle at 38% 30%,#ff7d82,#e0202c 56%,#9d0f19);color:#fff;display:grid;place-items:center;
-    box-shadow:0 0 0 4px #0a1420,0 10px 22px rgba(0,0,0,.55)}
-  .estop:hover:not(:disabled){border-color:#ffd83a;background:radial-gradient(circle at 38% 30%,#ff8e92,#ec2a36 56%,#a9111c)}
-  .estop:active{transform:translateY(2px)}
-  .estop-cap{font:800 13.5px/1.1 var(--ui);text-transform:uppercase;letter-spacing:.05em;text-align:center;padding:0 8px}
-  .estop-key{position:absolute;left:0;right:0;bottom:12px;text-align:center;font:600 10px/1 var(--ui);letter-spacing:.1em;color:#ffd0d3}
-  .mission-body .buttons{grid-column:1 / -1}
-  .mission-body .buttons button{flex:1 1 0}
-  #msg{min-height:18px;margin-top:6px;color:var(--dim);font-size:13.5px}
-
-  /* ---------- instruments ---------- */
-  .readout{display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;border-bottom:1px solid #16304a}
-  .readout:last-of-type{border-bottom:0}
-  .readout span{color:var(--dim);font-size:14px}
-  .readout b{font:700 30px/1 var(--num);font-variant-numeric:tabular-nums}
-  svg.drawing{display:block;width:100%;height:auto}
-  .rud{display:grid;grid-template-columns:100px minmax(0,1fr);gap:10px;align-items:center}
-  #boat{width:100px}
-  .tiles{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}
-  .tile{min-width:0}
-  .tile span{display:block;font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);line-height:1.2}
-  .tile b{display:block;font:700 15px/1.3 var(--num);font-variant-numeric:tabular-nums;white-space:nowrap}
-  input[type=range]{width:100%;accent-color:var(--cyan);margin:4px 0 4px}
-  #track{border:1px solid var(--line);border-radius:8px;max-height:96px;margin:6px auto 0;
-    background:#091726 linear-gradient(rgba(56,189,240,.07) 1px,transparent 1px) 0 0/100% 20px,linear-gradient(90deg,rgba(56,189,240,.07) 1px,transparent 1px) 0 0/20px 100%}
-  #log{list-style:none;margin:0;padding:0;max-height:min(290px,calc(100vh - 640px));min-height:150px;overflow:auto;font-size:13px}
-  #log li{display:grid;grid-template-columns:auto 1fr;gap:10px;padding:4px 0;border-bottom:1px solid #16304a}
-  #log time{font:700 12.5px/1.5 var(--num);color:var(--dim);font-variant-numeric:tabular-nums}
-  #log li.warn span{color:var(--amber)} #log li.fault span{color:#ff7b85;font-weight:600}
-  #log::-webkit-scrollbar{width:8px} #log::-webkit-scrollbar-thumb{background:#27476a;border-radius:4px}
-
-  /* ---------- real boat hardware (control ESP32 over Wi-Fi) ---------- */
-  .hw{display:grid;gap:10px;padding:10px 16px 0;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr) minmax(0,1fr)}
-  @media (max-width:960px){.hw{grid-template-columns:1fr}}
-  .chip.live{background:rgba(47,212,140,.14);border:1px solid rgba(47,212,140,.5);color:#8ff0c3}
-  .chip.off{background:transparent;border:1px solid #7b2a33;color:#ff8b94}
-  .scene{position:relative;height:230px;perspective:800px;overflow:hidden;border:1px solid var(--line);border-radius:8px;
-    background:radial-gradient(ellipse at 50% 60%,#0f2a44 0,#061220 75%)}
-  .scene.nolive #view{opacity:.3}
-  #view,#model,.cub,.water{position:absolute;left:50%;top:54%;transform-style:preserve-3d}
-  #view{transform:rotateX(-24deg) rotateY(-32deg)}
+  /* middle: the 3D attitude takes whatever height is free; the camera only takes room when it has a picture */
+  #p-att{flex:1 1 0;min-height:190px;display:flex;flex-direction:column;padding-bottom:8px}
+  .scene{position:relative;flex:1 1 0;min-height:0;perspective:900px;overflow:hidden;border:1px solid var(--rule)}
+  .scene.nolive #view{opacity:.25}
+  #view,#model,.cub{position:absolute;left:50%;top:52%;transform-style:preserve-3d}
   #model{left:0;top:0;transition:transform .12s linear}
   .cub{left:0;top:0}
-  .cub i{position:absolute;display:block;border:1px solid rgba(207,224,238,.35)}
-  .water{left:-130px;top:22px;width:260px;height:260px;transform:rotateX(90deg);border-radius:50%;
-    background:radial-gradient(circle,rgba(56,189,240,.22),rgba(56,189,240,.03) 70%);border:1px dashed rgba(56,189,240,.3)}
-  .scene-msg{position:absolute;inset:auto 0 8px 0;text-align:center;color:var(--dim);font-size:12.5px}
-  .att{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}
-  .att .tile b{font-size:22px}
-  .opts{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center;margin-top:8px;color:var(--dim);font-size:13px}
+  .cub i{position:absolute;display:block;border:1px solid rgba(221,226,231,.35)}
+  .water{position:absolute;left:-150px;top:24px;width:300px;height:300px;transform:rotateX(90deg);border:1px solid var(--rule);
+    background:linear-gradient(var(--rule) 1px,transparent 1px) 0 0/30px 30px,linear-gradient(90deg,var(--rule) 1px,transparent 1px) 0 0/30px 30px}
+  #scene-msg{position:absolute;left:10px;right:10px;top:8px;color:var(--dim);font-size:12.5px}
+  .att{position:absolute;left:10px;bottom:8px;display:flex;gap:22px;color:var(--dim);font-size:12px}
+  .att b{display:block;font-size:22px;color:var(--text)}
+  .opts{display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;margin-top:7px;color:var(--dim);font-size:12.5px}
   .opts label{display:inline-flex;gap:5px;align-items:center;cursor:pointer}
-  .pad{display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(3,52px);gap:6px;justify-content:center;margin:8px 0}
-  .pad button{padding:0;font-size:20px;touch-action:none;user-select:none}
-  .pad button.held{background:#12865a;border-color:#2fd48c}
-  .pad .halt{font-size:12px;font-weight:800;letter-spacing:.06em;color:#ff8b94;border-color:#8a2f39}
-  .mbar{display:grid;grid-template-columns:3.2em 1fr 3.4em;gap:8px;align-items:center;font-size:13px;color:var(--dim);margin:4px 0}
-  .mbar .trk{position:relative;height:10px;border-radius:5px;background:#16304a}
-  .mbar .trk::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--line-2)}
-  .mbar .trk i{position:absolute;top:0;bottom:0;border-radius:5px;background:var(--green)}
-  .mbar b{font:700 14px/1 var(--num);color:var(--text);text-align:right}
-  .armed-on{background:#b3202d;border-color:#ff7a84;color:#fff}
+  .opts button{padding:6px 9px;margin-left:auto}
+  #p-cam.live{flex:1.25 1 0;min-height:0;display:flex;flex-direction:column}
+  .camrow{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .camrow span{color:var(--dim)}
+  .camrow .sp{margin-left:auto}
+  .camrow button{padding:6px 9px}
+  #caminput{margin-top:6px;font-size:12.5px}
+  .cambody{flex:1 1 0;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 210px;gap:10px;margin-top:8px}
+  #camimg{width:100%;height:100%;object-fit:contain;background:#000;border:1px solid var(--rule)}
+  .dets{list-style:none;margin:0;padding:0;font-size:13px}
+  .dets li{display:flex;justify-content:space-between;gap:8px;padding:3px 0;border-bottom:1px solid var(--rule);color:var(--amber)}
+  .dets li.person{color:var(--red)}
+  #cammeta{color:var(--dim);font-size:12px;margin-top:6px}
 
-  /* ---------- demo bar (always reachable) ---------- */
-  .demobar{position:fixed;left:0;right:0;bottom:0;z-index:5;display:flex;align-items:center;gap:8px;flex-wrap:wrap;
-    padding:7px 16px;background:rgba(5,13,23,.96);border-top:1px solid var(--line-2)}
-  .demobar .lead{display:flex;align-items:center;gap:8px;margin-right:6px;font:600 11.5px/1.2 var(--ui);letter-spacing:.12em;text-transform:uppercase;color:var(--dim)}
-  .demobar .spacer{margin-left:auto}
+  table{width:100%;border-collapse:collapse}
+  td{padding:4px 0;border-bottom:1px solid var(--rule);vertical-align:baseline}
+  tr:last-child td{border-bottom:0}
+  td:first-child{color:var(--dim);white-space:nowrap;padding-right:10px}
+  td:last-child{text-align:right;font-family:var(--num);font-size:13px;font-variant-numeric:tabular-nums}
+  #track{display:block;width:100%;height:90px;margin-top:6px;border:1px solid var(--rule)}
+  #p-log{flex:1 1 0;min-height:120px;display:flex;flex-direction:column}
+  #log{list-style:none;margin:0;padding:0;overflow:auto;flex:1 1 0;min-height:0;font-size:12.5px}
+  #log li{display:grid;grid-template-columns:auto 1fr;gap:9px;padding:3px 0;border-bottom:1px solid var(--rule)}
+  #log time{font-family:var(--num);color:var(--dim)}
+  #log li.warn span{color:var(--amber)}
+  #log li.fault span{color:var(--red);font-weight:600}
 
-  footer{padding:14px 16px 6px;color:var(--mute);font-size:12.5px;max-width:120ch}
-  #cfg .row b span.chip{margin-left:6px}
-  .more p{margin:0 0 8px}
-  .more p:last-child{margin:0}
-
-  @media (max-width:960px){
-    .frame{max-height:none}
-    .demobar{position:static;margin-top:12px}
-    body{padding-bottom:0}
-  }
-  @media (max-width:700px){
-    .dash{grid-template-columns:1fr}
-    .cam-foot{grid-template-columns:1fr}
-    .top,.dash,.below{padding-left:12px;padding-right:12px}
-    .alerts{margin-left:12px;margin-right:12px}
-    .mission-body{grid-template-columns:1fr}
-    .estop{grid-row:auto;grid-column:auto;justify-self:start}
-    #state{font-size:38px}
+  @media (max-width:980px){
+    html,body{height:auto}
+    body{display:block}
+    main{grid-template-columns:1fr}
+    main>section+section{border-left:0;border-top:1px solid var(--rule)}
+    #p-att{min-height:340px}
+    #p-cam.live{min-height:320px}
+    #log{max-height:260px}
   }
 </style>
 </head>
 <body>
-<header class="top">
-  <div class="brand">
-    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M9 3c3 4 3 22 2 26H7C6 25 6 7 9 3zM23 3c3 4 3 22 2 26h-4c-1-4-1-22 2-26z" fill="#38bdf0"/><rect x="10" y="12" width="12" height="10" rx="1.5" fill="#1c6f94"/></svg>
-    <div><span class="wordmark">SeaGuardian</span><small>Operator dashboard</small></div>
-  </div>
-  <div class="status" aria-label="System status">
-    <div class="pill" id="st-link"><i></i><div><small>Boat ESP32</small><b>-</b></div></div>
-    <div class="pill" id="st-cam"><i></i><div><small>Camera</small><b>-</b></div></div>
-    <div class="pill" id="st-motor"><i></i><div><small>Motors</small><b>-</b></div></div>
-    <div class="pill" id="st-alerts"><i></i><div><small>Alerts</small><b>-</b></div></div>
-  </div>
-  <div class="toprt">
-    <span class="clock" id="clock">--:--:--</span>
-    <span class="key">Live hardware data only</span>
-  </div>
+<header>
+  <h1>SeaGuardian</h1>
+  <span>Boat <b id="st-link">-</b></span>
+  <span>Motors <b id="st-motor">-</b></span>
+  <span>Camera <b id="st-cam">-</b></span>
+  <span id="clock">--:--:--</span>
 </header>
-<div class="alerts">
-  <div id="banner" role="alert"></div>
-  <div id="warnbar" role="status"></div>
-</div>
+<div id="alerts" role="alert" hidden></div>
 
-<main class="dash">
-  <!-- Camera: the one live hardware feed -->
-  <section class="panel cam" aria-labelledby="h-cam">
-    <h2 id="h-cam">Camera <span class="chip plain" id="camtag">Not configured</span> <button id="camflip" class="small cam-toggle" hidden>Flip 180&deg;</button> <button id="camtoggle" class="small" hidden>Turn camera off</button></h2>
-    <div id="caminput" class="input-badge" hidden></div>
-    <div class="frame">
-      <img id="camimg" alt="Annotated video from the boat camera">
-      <div class="frame-msg" id="camph"><b>No camera connected</b><span>Start <code>vision/viewer.py</code>, then run the dashboard with <code>--camera-viewer http://127.0.0.1:8001</code>.</span></div>
-      <div class="frame-msg" id="camstat" hidden></div>
-    </div>
-    <div class="cam-foot">
-      <div id="camdets"></div>
-      <div><dl id="cammeta"></dl></div>
-      <p class="note cam-note">Object detection only: potential objects for operator review, not a damage assessment. The score is the model's own, not verified accuracy.</p>
-    </div>
-  </section>
-
-
-  <div class="col">
-    <!-- Safety: emergency stop of the real boat -->
-    <section class="panel" aria-labelledby="h-safety">
-      <h2 id="h-safety">Safety</h2>
-      <div class="mission-body">
-        <div>
-          <div class="row"><span>Link to boat ESP32</span><b id="s-link">-</b></div>
-          <div class="row"><span>Emergency stop</span><b id="s-estop">-</b></div>
-          <div class="row"><span>Command watchdog</span><b id="s-wd">-</b></div>
-          <div class="row"><span>Motors</span><b id="s-arm">-</b></div>
-        </div>
-        <button id="b-estop" class="estop" aria-label="Emergency stop" aria-keyshortcuts="Escape"><span class="estop-cap">Emergency stop</span><span class="estop-key">ESC</span></button>
-        <div class="buttons"><button id="b-reset" class="big" disabled>Release emergency stop</button></div>
-      </div>
+<main>
+  <!-- left: everything you press -->
+  <section>
+    <div class="blk">
+      <button id="b-estop" aria-keyshortcuts="Escape">EMERGENCY STOP<small>or press Esc</small></button>
+      <button id="b-reset" hidden>Release emergency stop</button>
       <div id="msg" role="status"></div>
-      <p class="note">The ESP32 stops the motors by itself if the link drops or no command arrives for 1 s. The laptop is never the only safety mechanism.</p>
-    </section>
-  <section class="panel" aria-labelledby="h-drive">
-    <h2 id="h-drive">Motor control <span class="chip plain" id="hw-armchip">Disarmed</span></h2>
-    <div class="buttons">
-      <button id="hw-arm" class="big" style="flex:1">Arm motors</button>
-      <button id="hw-unlatch" class="big" hidden>Release boat e-stop</button>
     </div>
-    <div class="pad" id="pad">
-      <span></span><button data-k="f" aria-label="Forward">&#9650;</button><span></span>
-      <button data-k="l" aria-label="Turn to port">&#9664;</button><button class="halt" id="hw-stop">STOP</button><button data-k="r" aria-label="Turn to starboard">&#9654;</button>
-      <span></span><button data-k="b" aria-label="Backward">&#9660;</button><span></span>
+    <div class="blk" id="p-motors">
+      <h2>Motors <b id="hw-armstate">-</b></h2>
+      <button id="hw-arm">Arm motors</button>
+      <div class="pad" id="pad">
+        <span></span><button data-k="f" aria-label="Forward">&#9650;</button><span></span>
+        <button data-k="l" aria-label="Turn left">&#9664;</button><button class="halt" id="hw-stop">STOP</button><button data-k="r" aria-label="Turn right">&#9654;</button>
+        <span></span><button data-k="b" aria-label="Backward">&#9660;</button><span></span>
+      </div>
+      <h2>Speed limit <b id="hw-speedv">-</b></h2>
+      <input type="range" id="hw-speed" min="10" max="100" step="5" value="50" aria-label="Speed limit in percent">
+      <div class="mbar"><span>Left</span><div class="trk"><i id="hw-ml"></i></div><b id="hw-mlv">-</b></div>
+      <div class="mbar"><span>Right</span><div class="trk"><i id="hw-mr"></i></div><b id="hw-mrv">-</b></div>
+      <p class="note">Hold an arrow, or W A S D / arrow keys. Release to stop.</p>
     </div>
-    <div class="row"><span>Speed limit</span><b id="hw-speedv">-</b></div>
-    <input type="range" id="hw-speed" min="10" max="100" step="5" value="50" aria-label="Speed limit in percent">
-    <div class="mbar"><span>Left</span><div class="trk"><i id="hw-ml"></i></div><b id="hw-mlv">-</b></div>
-    <div class="mbar"><span>Right</span><div class="trk"><i id="hw-mr"></i></div><b id="hw-mrv">-</b></div>
-    <p class="note">Hold a button, or W A S D / arrow keys, to drive; release to stop. The boat stops by itself if this page closes or the Wi-Fi drops.</p>
-  </section>
-
-  <section class="panel" aria-labelledby="h-servo">
-    <h2 id="h-servo">Servo and controller <span class="chip plain">GPIO18</span></h2>
-    <div class="row"><span>Rudder servo</span><b id="hw-servov">-</b></div>
-    <input type="range" id="hw-servo" min="80" max="100" step="1" value="90" aria-label="Servo angle in degrees">
-    <div class="buttons">
-      <button class="small port" data-servo="-1">Port</button>
-      <button class="small" data-servo="0">Centre</button>
-      <button class="small stbd" data-servo="1">Starboard</button>
-    </div>
-    <div style="margin-top:8px">
-      <div class="row"><span>Controller</span><b id="hw-sys">-</b></div>
-      <div class="row"><span>Wi-Fi</span><b id="hw-wifi">-</b></div>
-      <div class="row"><span>IMU</span><b id="hw-imu">-</b></div>
-      <div class="row"><span>GPS</span><b id="hw-gps">-</b></div>
-      <div class="row"><span>Last rejection</span><b id="hw-err" style="font-size:13px">-</b></div>
+    <div class="blk">
+      <h2>Rudder <b id="hw-servov">-</b></h2>
+      <div class="three">
+        <button data-steer="-1">Steer left</button>
+        <button data-steer="0">Centre</button>
+        <button data-steer="1">Steer right</button>
+      </div>
+      <div class="opts"><label><input type="checkbox" id="steer-swap"> Swap left and right</label></div>
     </div>
   </section>
-  </div>
 
-  <div class="col">
-  <section class="panel" aria-labelledby="h-att">
-    <h2 id="h-att">Boat attitude, live 3D <span class="chip off" id="hw-link">ESP32 not connected</span></h2>
-    <div class="scene nolive" id="scene">
-      <div id="view"><div class="water"></div><div id="model"></div></div>
-      <div class="scene-msg" id="scene-msg">Waiting for the boat ESP32 (it connects to this laptop on port 8000, path /ws).</div>
+  <!-- middle: what the boat is doing -->
+  <section>
+    <div class="blk" id="p-att">
+      <h2>Attitude <b id="hw-link">-</b></h2>
+      <div class="scene nolive" id="scene">
+        <div id="view"><div class="water"></div><div id="model"></div></div>
+        <div id="scene-msg"></div>
+        <div class="att">
+          <div>Roll<b id="hw-roll">-</b></div>
+          <div>Pitch<b id="hw-pitch">-</b></div>
+          <div>Yaw<b id="hw-yaw">-</b></div>
+        </div>
+      </div>
+      <div class="opts">
+        <span>Invert</span>
+        <label><input type="checkbox" id="inv-roll"> roll</label>
+        <label><input type="checkbox" id="inv-pitch"> pitch</label>
+        <label><input type="checkbox" id="inv-yaw"> yaw</label>
+        <button id="hw-zero">Zero gyro (keep still 2 s)</button>
+      </div>
     </div>
-    <div class="att">
-      <div class="tile"><span>Roll</span><b id="hw-roll">-</b></div>
-      <div class="tile"><span>Pitch</span><b id="hw-pitch">-</b></div>
-      <div class="tile"><span>Yaw (relative)</span><b id="hw-yaw">-</b></div>
+    <div class="blk" id="p-cam">
+      <div class="camrow">
+        <span>Camera</span><b id="camstate">-</b><span id="camwhy"></span>
+        <button id="camflip" class="sp" hidden>Flip 180&deg;</button>
+        <button id="camtoggle" hidden>Turn camera off</button>
+      </div>
+      <div id="caminput" hidden></div>
+      <div class="cambody" id="cambody" hidden>
+        <img id="camimg" alt="Annotated video from the boat camera">
+        <div><div id="camdets"></div><div id="cammeta"></div></div>
+      </div>
     </div>
-    <div class="opts">
-      <label><input type="checkbox" id="inv-roll"> Invert roll</label>
-      <label><input type="checkbox" id="inv-pitch"> Invert pitch</label>
-      <label><input type="checkbox" id="inv-yaw"> Invert yaw</label>
-      <button id="hw-zero" class="small">Zero gyro (keep still 2 s)</button>
-    </div>
-    <p class="note">Roll and pitch come from the MPU6050 (gravity-referenced). Yaw is integrated gyro: it drifts and has no compass.</p>
   </section>
 
-
-    <section class="panel" id="p-gps" aria-labelledby="h-gps">
-      <h2 id="h-gps">Position <span class="chip plain">NEO-6M GPS</span></h2>
-      <div class="row"><span>Latitude</span><b id="lat">-</b></div>
-      <div class="row"><span>Longitude</span><b id="lon">-</b></div>
-      <div class="row"><span>Speed</span><b id="gspeed">-</b></div>
-      <svg id="track" class="drawing" viewBox="0 0 200 110" role="img" aria-label="Track of the GPS position, north up"></svg>
-    </section>
-
-    <section class="panel" aria-labelledby="h-log">
-      <h2 id="h-log">Event log</h2>
+  <!-- right: readings and the log -->
+  <section>
+    <div class="blk">
+      <table>
+        <tr><td>Link</td><td id="s-link">-</td></tr>
+        <tr><td>Emergency stop</td><td id="s-estop">-</td></tr>
+        <tr><td>Command watchdog</td><td id="s-wd">-</td></tr>
+        <tr><td>Wi-Fi</td><td id="hw-wifi">-</td></tr>
+        <tr><td>Running for</td><td id="hw-sys">-</td></tr>
+        <tr><td>Last restart cause</td><td id="hw-reset">-</td></tr>
+        <tr><td>IMU</td><td id="hw-imu">-</td></tr>
+        <tr><td>GPS</td><td id="hw-gps">-</td></tr>
+        <tr><td>Position</td><td id="pos">-</td></tr>
+        <tr><td>Last rejected command</td><td id="hw-err">-</td></tr>
+      </table>
+      <svg id="track" viewBox="0 0 200 60" role="img" aria-label="Track of the GPS position, north up" hidden></svg>
+    </div>
+    <div class="blk" id="p-log">
+      <h2>Events</h2>
       <ul id="log"></ul>
-    </section>
-  </div>
+    </div>
+  </section>
 </main>
-<footer>
-  All values on this page come from the real control ESP32 and the camera; nothing is simulated. A software emergency stop cannot remove power: keep a physical kill switch on the battery.
-</footer>
 
 <script>
 const $ = id => document.getElementById(id);
-const BLUE = "#38bdf0", MARK = "#ffffff", DIM = "#8ea7bc";
-const f = (v, unit, d = 1) => (v === undefined || v === null) ? "-" : `${Number(v).toFixed(d)}${unit.startsWith("°") ? "" : " "}${unit}`;
+const f = (v, unit, d = 1) => (v === undefined || v === null) ? "-" : `${Number(v).toFixed(d)}${unit}`;
 const esc = t => String(t).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
-function say(text, ok){ $("msg").textContent = text === "ok" ? "" : text; $("msg").style.color = ok ? "var(--dim)" : "var(--amber)"; }
-function setPill(id, text, cls){ const el = $(id); el.querySelector("b").textContent = text; el.className = "pill " + cls; }
-
-async function send(name, body){
+const set = (id, text, cls) => { $(id).textContent = text; $(id).className = cls || ""; };
+function say(text){ $("msg").textContent = !text || text === "ok" ? "" : text; }
+async function post(name, body){
   try {
     const r = await fetch("/api/command/" + name, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body || {})});
-    const j = await r.json();
-    say(j.message, j.ok);
-  } catch (e) { say("Cannot reach the dashboard server.", false); }
-  refresh();
-}
-$("b-estop").onclick = () => send("estop");
-document.addEventListener("keydown", e => { if (e.key === "Escape") send("estop"); });
-$("b-reset").onclick = () => {
-  if (confirm("Release the boat's emergency stop?\n\nThe motors stay disarmed until you press Arm.")) send("reset", {confirm: true});
-};
-
-function drawTrack(pts){
-  if (!pts.length) { $("track").innerHTML = `<text x="100" y="58" text-anchor="middle" font-size="11" fill="${DIM}">No GPS fix yet</text>`; return; }
-  const lat0 = pts[0][0], lon0 = pts[0][1], k = Math.cos(lat0 * Math.PI / 180);
-  const xy = pts.map(([la, lo]) => [(lo - lon0) * 111320 * k, -(la - lat0) * 111320]);   // metres, north up
-  const xs = xy.map(p => p[0]), ys = xy.map(p => p[1]);
-  const minx = Math.min(...xs), maxx = Math.max(...xs), miny = Math.min(...ys), maxy = Math.max(...ys);
-  const span = Math.max(maxx - minx, (maxy - miny) * 200 / 110, 20), sc = 170 / span;
-  const X = x => 15 + (x - minx) * sc, Y = y => 15 + (y - miny) * sc;
-  const line = xy.map(p => `${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(" ");
-  const last = xy[xy.length - 1];
-  $("track").innerHTML = `<polyline points="${line}" fill="none" stroke="${BLUE}" stroke-width="1.8"/>
-    <circle cx="${X(last[0])}" cy="${Y(last[1])}" r="7" fill="none" stroke="${MARK}" stroke-width="1.5"/>
-    <circle cx="${X(last[0])}" cy="${Y(last[1])}" r="2.5" fill="${MARK}"/>
-    <text x="194" y="14" text-anchor="end" font-size="10" fill="${DIM}">N &uarr;  ${span.toFixed(0)} m across</text>`;
-}
-
-// ---- camera: render the state the dashboard server validated from vision/viewer.py ----
-let camShown = false;
-const CAM_MSG = {
-  CONNECTING: ["<b>Connecting</b><span>Waiting for the camera viewer.</span>", "warn"],
-  CAMERA_DOWN: ["<b>Camera down</b><span>The viewer gets no frames. Check that the camera has power and is on the hotspot.</span>", "bad"],
-  VIEWER_UNREACHABLE: ["<b>Viewer not reachable</b><span>Start <code>vision/viewer.py</code> or check its address. Video and detections are unavailable.</span>", "bad"],
-  STALE: ["<b>Frozen</b><span>Detections stopped updating. What you see is not live.</span>", "bad"],
-  BAD_RESPONSE: ["<b>Unreadable response</b><span>The camera viewer sent data the dashboard could not read.</span>", "bad"],
-  OFF: ["<b>Camera off</b><span>Turned off from this dashboard. Press Turn camera on to resume.</span>", ""],
-};
-$("camtoggle").onclick = () => send(lastCam === "OFF" ? "camera-on" : "camera-off");
-let lastCam = null, viewerUrl = null;
-$("camflip").onclick = async () => {   // the viewer rotates the image before detection, so the boxes stay right
-  try { await fetch(viewerUrl + "/flip", {method: "POST"}); say("", true); }
-  catch (e) { say("Cannot reach the camera viewer to flip the image.", false); }
-};
-function renderCamera(c){
-  const on = c.configured, st = c.status;
-  lastCam = st; viewerUrl = c.viewer_url;
-  $("camtoggle").hidden = !on;
-  $("camflip").hidden = !on || st === "OFF";
-  $("camtoggle").textContent = st === "OFF" ? "Turn camera on" : "Turn camera off";
-  $("camtag").textContent = on ? "Viewer " + c.viewer_url.replace(/^https?:\/\//, "") : "Not configured";
-  const inp = $("caminput");
-  inp.hidden = !(on && c.input);
-  if (!inp.hidden) {
-    const real = c.input === "REAL CAMERA";
-    inp.className = "input-badge " + (real ? "real" : "test");
-    inp.textContent = real ? "Live from the boat camera (ESP32 #1). This tells you where the video comes from, not that the detections are right."
-                           : `Test input (${c.src}): this is not the boat camera`;
-  }
-  $("camph").hidden = on;
-  const showVideo = on && (st === "OK" || st === "STALE");
-  if (showVideo && !camShown) { $("camimg").src = ""; $("camimg").src = c.stream_url; }   // (re)connect the stream
-  if (!showVideo && camShown) $("camimg").src = "";
-  camShown = showVideo;
-  $("camimg").style.display = showVideo ? "block" : "none";
-  $("camimg").style.opacity = st === "STALE" ? 0.35 : 1;
-  const [text, cls] = (on && CAM_MSG[st]) || ["", ""];
-  $("camstat").hidden = !text; $("camstat").innerHTML = text; $("camstat").className = "frame-msg " + cls;
-  const dets = on && st === "OK" ? (c.detections || []) : null;
-  $("camdets").innerHTML = !dets ? "" : dets.length
-    ? `<h3>Detections <span>(model score, not verified)</span></h3><ul class="dets">` + dets.map(d => {
-        const pct = Math.max(0, Math.min(100, Number(d.conf_pct) || 0));
-        return `<li class="${d.cls === "person" ? "person" : ""}"><span>${esc(d.label)}</span><b>${pct}%</b><span class="bar"><i style="width:${pct}%"></i></span></li>`;
-      }).join("") + `</ul><p class="note">${esc(c.notice)}</p>`
-    : `<h3>Detections</h3><p class="empty">Nothing detected in the current frame.</p>`;
-  const meta = [];
-  if (on && st === "OK") { if (c.fps !== null) meta.push(["Rate", `${esc(c.fps)}/s`]); if (c.infer_ms !== null) meta.push(["Inference", `${esc(c.infer_ms)} ms`]); if (c.model) meta.push(["Model", esc(c.model)]); }
-  if (on && c.ignored) meta.push(["Ignored", `${esc(c.ignored)} unreadable`]);
-  $("cammeta").innerHTML = meta.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("");
-}
-
-// ---- real boat hardware: control ESP32 (motors, servo, IMU) ----
-async function boat(name, body){
-  try {
-    const r = await fetch("/api/command/boat-" + name, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body || {})});
     return await r.json();
   } catch (e) { return {ok: false, message: "Cannot reach the dashboard server."}; }
 }
-function cuboid(w, h, d, x, y, z, c){   // a box made of six faces, centred on (x, y, z); CSS axes: x right, y down, z to the viewer
+const boat = (name, body) => post("boat-" + name, body);
+async function send(name, body){ const j = await post(name, body); say(j.message); refresh(); }
+$("b-estop").onclick = () => send("estop");
+document.addEventListener("keydown", e => { if (e.key === "Escape") send("estop"); });
+$("b-reset").onclick = () => { if (confirm("Release the boat's emergency stop?\n\nThe motors stay disarmed until you press Arm.")) send("reset", {confirm: true}); };
+setInterval(() => { $("clock").textContent = new Date().toLocaleTimeString([], {hour12: false}); }, 1000);
+
+// ---- camera (state validated by the dashboard server from vision/viewer.py) ----
+const CAM = {
+  NOT_CONFIGURED: ["not set up", "start vision/viewer.py and run the dashboard with --camera-viewer", ""],
+  CONNECTING: ["connecting", "waiting for the camera viewer", "warn"],
+  CAMERA_DOWN: ["down", "the viewer gets no frames from the camera", "bad"],
+  VIEWER_UNREACHABLE: ["viewer not reachable", "start vision/viewer.py or check its address", "bad"],
+  STALE: ["frozen", "detections stopped updating; the picture is not live", "bad"],
+  BAD_RESPONSE: ["unreadable", "the viewer sent data the dashboard could not read", "bad"],
+  OFF: ["off", "turned off here", ""],
+  OK: ["live", "", "ok"],
+};
+let camShown = false, lastCam = null, viewerUrl = null;
+$("camtoggle").onclick = () => send(lastCam === "OFF" ? "camera-on" : "camera-off");
+$("camflip").onclick = async () => {   // the viewer rotates the image before detection, so the boxes stay right
+  try { await fetch(viewerUrl + "/flip", {method: "POST"}); say(""); } catch (e) { say("Cannot reach the camera viewer to flip the image."); }
+};
+function renderCamera(c){
+  const on = c.configured, st = on ? c.status : "NOT_CONFIGURED";
+  lastCam = st; viewerUrl = c.viewer_url;
+  const [word, why, cls] = CAM[st] || [st, "", "bad"];
+  const test = st === "OK" && c.input !== "REAL CAMERA";
+  set("camstate", test ? "test input" : word, test ? "warn" : cls); $("camwhy").textContent = why;
+  set("st-cam", test ? "test input" : word, test ? "warn" : cls);
+  $("camtoggle").hidden = !on; $("camtoggle").textContent = st === "OFF" ? "Turn camera on" : "Turn camera off";
+  $("camflip").hidden = !on || st === "OFF";
+  $("caminput").hidden = !test;
+  if (test) { $("caminput").className = "warn"; $("caminput").textContent = `Test input (${c.src}): this is not the boat camera.`; }
+  const show = on && (st === "OK" || st === "STALE");
+  if (show && !camShown) { $("camimg").src = ""; $("camimg").src = c.stream_url; }   // (re)connect the stream
+  if (!show && camShown) $("camimg").src = "";
+  camShown = show;
+  $("cambody").hidden = !show; $("p-cam").classList.toggle("live", show);
+  $("camimg").style.opacity = st === "STALE" ? 0.35 : 1;
+  const dets = st === "OK" ? (c.detections || []) : [];
+  $("camdets").innerHTML = st !== "OK" ? "" : dets.length
+    ? `<ul class="dets">` + dets.map(d => `<li class="${d.cls === "person" ? "person" : ""}"><span>${esc(d.label)}</span><b>${Math.max(0, Math.min(100, Number(d.conf_pct) || 0))}%</b></li>`).join("") +
+      `</ul><p class="note">${esc(c.notice)} The score is the model's own.</p>`
+    : `<p class="note" style="margin:0">Nothing detected in this frame.</p>`;
+  const meta = [];
+  if (st === "OK") { if (c.fps !== null) meta.push(`${esc(c.fps)} frames/s`); if (c.infer_ms !== null) meta.push(`${esc(c.infer_ms)} ms`); if (c.model) meta.push(esc(c.model)); }
+  if (on && c.ignored) meta.push(`${esc(c.ignored)} unreadable ignored`);
+  $("cammeta").textContent = meta.join(", ");
+}
+
+// ---- 3D model: a box-built catamaran. CSS axes: x right, y down, z to the viewer. Bow points away (-z), starboard is +x. ----
+function cuboid(w, h, d, x, y, z, c){
   const face = (fw, fh, tf, shade) => `<i style="width:${fw}px;height:${fh}px;left:${-fw / 2}px;top:${-fh / 2}px;transform:${tf};background:${c};filter:brightness(${shade})"></i>`;
   return `<div class="cub" style="transform:translate3d(${x}px,${y}px,${z}px)">` +
     face(w, h, `translateZ(${d / 2}px)`, 1) + face(w, h, `rotateY(180deg) translateZ(${d / 2}px)`, 1.25) +
     face(d, h, `rotateY(90deg) translateZ(${w / 2}px)`, .8) + face(d, h, `rotateY(-90deg) translateZ(${w / 2}px)`, .8) +
     face(w, d, `rotateX(90deg) translateZ(${h / 2}px)`, 1.1) + face(w, d, `rotateX(-90deg) translateZ(${h / 2}px)`, .6) + `</div>`;
 }
-// Catamaran: bow points away from the viewer (-z), starboard is +x. Red = port bow, green = starboard bow.
-$("model").innerHTML =
-  cuboid(26, 22, 170, -52, 8, 0, "#1d4263") + cuboid(26, 22, 170, 52, 8, 0, "#1d4263") +
-  cuboid(26, 22, 14, -52, 8, -92, "#b3202d") + cuboid(26, 22, 14, 52, 8, -92, "#12865a") +
-  cuboid(130, 6, 96, 0, -6, 0, "#2b5d86") + cuboid(52, 26, 56, 0, -22, 6, "#1c6f94") + cuboid(16, 12, 12, 0, -24, -28, "#38bdf0");
-const track = [];
-let servoC = 90, servoL = 10;
-let hw = null, yawShown = 0, lastYaw = null, armed = false;
-const held = new Set(), INV = ["roll", "pitch", "yaw"];
-INV.forEach(k => { const el = $("inv-" + k); el.checked = localStorage.getItem("inv-" + k) === "1"; el.onchange = () => localStorage.setItem("inv-" + k, el.checked ? "1" : "0"); });
+$("model").innerHTML =   // red = port bow, green = starboard bow, thin plate at the stern = rudder
+  cuboid(26, 22, 170, -52, 8, 0, "#4a5560") + cuboid(26, 22, 170, 52, 8, 0, "#4a5560") +
+  cuboid(26, 22, 14, -52, 8, -92, "#e5484d") + cuboid(26, 22, 14, 52, 8, -92, "#3fb950") +
+  cuboid(130, 6, 96, 0, -6, 0, "#6b7783") + cuboid(52, 26, 56, 0, -22, 6, "#2b3138") + cuboid(4, 30, 22, 0, 26, 78, "#2b3138");
+function fitScene(){ const r = $("scene").getBoundingClientRect(); $("view").style.transform = `scale(${Math.max(.6, Math.min(r.width / 330, r.height / 250))}) rotateX(-24deg) rotateY(-32deg)`; }
+new ResizeObserver(fitScene).observe($("scene"));
+
+// ---- the real boat: control ESP32 (motors, servo, IMU, GPS) ----
+const track = [], held = new Set();
+let yawShown = 0, lastYaw = null, armed = false, servoC = 90, servoL = 6;
+const tick = id => { const el = $(id); el.checked = localStorage.getItem(id) === "1"; el.onchange = () => localStorage.setItem(id, el.checked ? "1" : "0"); };
+["inv-roll", "inv-pitch", "inv-yaw", "steer-swap"].forEach(tick);
 const inv = k => $("inv-" + k).checked ? -1 : 1;
 function bar(el, v){ v = Math.max(-1, Math.min(1, v || 0)); el.style.left = (v < 0 ? 50 + v * 50 : 50) + "%"; el.style.width = Math.abs(v) * 50 + "%"; el.style.background = v < 0 ? "var(--amber)" : "var(--green)"; }
+function drawTrack(pts){
+  $("track").hidden = !pts.length;
+  if (!pts.length) return;
+  const lat0 = pts[0][0], lon0 = pts[0][1], k = Math.cos(lat0 * Math.PI / 180);
+  const xy = pts.map(([la, lo]) => [(lo - lon0) * 111320 * k, -(la - lat0) * 111320]);   // metres, north up
+  const xs = xy.map(p => p[0]), ys = xy.map(p => p[1]);
+  const minx = Math.min(...xs), maxx = Math.max(...xs), miny = Math.min(...ys), maxy = Math.max(...ys);
+  const span = Math.max(maxx - minx, (maxy - miny) * 200 / 60, 20), sc = 180 / span;
+  const X = x => 10 + (x - minx) * sc, Y = y => 8 + (y - miny) * sc, last = xy[xy.length - 1];
+  $("track").innerHTML = `<polyline points="${xy.map(p => `${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(" ")}" fill="none" stroke="#dde2e7" stroke-width="1"/>
+    <circle cx="${X(last[0])}" cy="${Y(last[1])}" r="2.5" fill="#3fb950"/>
+    <text x="196" y="10" text-anchor="end" font-size="8" fill="#8b959f">north up, ${span.toFixed(0)} m across</text>`;
+}
 function renderBoat(b){
-  hw = b;
   const t = b.telemetry, live = b.connected, a = b.attitude;
-  $("hw-link").textContent = live ? `Live from ESP32${b.fw ? " (fw " + b.fw + ")" : ""}` : "ESP32 not connected";
-  $("hw-link").className = "chip " + (live ? "live" : "off");
+  set("hw-link", live ? "live from the MPU6050" : "no data", live ? "" : "bad");
   $("scene").classList.toggle("nolive", !a);
-  $("scene-msg").textContent = !live ? "Waiting for the boat ESP32 (it connects to this laptop on port 8000, path /ws)."
-    : !a ? "ESP32 connected, but the MPU6050 is not answering (check SDA 21, SCL 22, 3V3, GND)." : "";
+  $("scene-msg").textContent = !live ? "Waiting for the boat ESP32 to connect." : !a ? "The MPU6050 is not answering (check SDA 21, SCL 22, 3V3, GND)." : "";
   if (a) {
     const roll = a.roll * inv("roll"), pitch = a.pitch * inv("pitch"), yaw = a.yaw * inv("yaw");
     if (lastYaw !== null) { let d = yaw - lastYaw; d -= 360 * Math.round(d / 360); yawShown += d; } else yawShown = yaw;   // no spin at +/-180
@@ -503,55 +326,47 @@ function renderBoat(b){
     $("model").style.transform = `rotateY(${-yawShown}deg) rotateX(${-pitch}deg) rotateZ(${roll}deg)`;
     $("hw-roll").textContent = f(roll, "°"); $("hw-pitch").textContent = f(pitch, "°"); $("hw-yaw").textContent = f(yaw, "°");
   } else { lastYaw = null; ["hw-roll", "hw-pitch", "hw-yaw"].forEach(id => $(id).textContent = "-"); }
-  const m = t && t.motors, sys = t && t.sys, estop = !!(sys && sys.estop);
+
+  const m = t && t.motors, sys = t && t.sys, estop = !!(sys && sys.estop), moving = !!(m && (m.left || m.right));
   armed = !!(m && m.armed);
   if (!armed && held.size) held.clear();
-  $("hw-armchip").textContent = !live ? "No link" : estop ? "EMERGENCY STOP" : sys.failsafe ? "Watchdog stop" : armed ? "ARMED" : "Disarmed";
-  $("hw-armchip").className = "chip " + (estop ? "off" : armed ? "live" : "plain");
+  set("hw-armstate", !live ? "no link" : estop ? "emergency stop" : sys.failsafe ? "watchdog stop" : armed ? "armed" : "disarmed", estop ? "bad" : armed || (live && sys.failsafe) ? "warn" : "");
   $("hw-arm").textContent = armed ? "Disarm motors" : "Arm motors";
-  $("hw-arm").className = "big" + (armed ? " armed-on" : "");
+  $("hw-arm").className = armed ? "armed" : "";
   $("hw-arm").disabled = !live || estop;
-  $("hw-unlatch").hidden = !estop;
-  document.querySelectorAll("#pad button[data-k]").forEach(el => { el.disabled = !armed; el.classList.toggle("held", held.has(el.dataset.k)); });
+  document.querySelectorAll("#pad button[data-k]").forEach(el => { el.disabled = !armed; el.classList.toggle("on", held.has(el.dataset.k)); });
   $("hw-stop").disabled = !live;
   bar($("hw-ml"), m && m.left); bar($("hw-mr"), m && m.right);
   $("hw-mlv").textContent = m ? m.left.toFixed(2) : "-"; $("hw-mrv").textContent = m ? m.right.toFixed(2) : "-";
   if (m && document.activeElement !== $("hw-speed")) $("hw-speed").value = Math.round(m.limit * 100);
   $("hw-speedv").textContent = m ? Math.round(m.limit * 100) + " %" : "-";
-  const sv = t && t.servos && t.servos[0];
-  if (sv !== undefined && sv !== null && document.activeElement !== $("hw-servo")) $("hw-servo").value = sv;
-  $("hw-servov").textContent = sv === undefined || sv === null ? "-" : `${sv - servoC >= 0 ? "+" : ""}${sv - servoC}° from centre (${sv}°)`;
-  ["hw-speed", "hw-servo", "hw-zero"].forEach(id => $(id).disabled = !live);
-  document.querySelectorAll("[data-servo]").forEach(el => el.disabled = !live || estop);
-  $("hw-sys").textContent = sys ? `up ${sys.uptime_s} s, last reset ${sys.reset}` : "-";
-  $("hw-wifi").textContent = sys ? `${sys.ip}, ${sys.rssi} dBm` : "-";
-  const imu = t && t.imu;
-  $("hw-imu").textContent = !imu ? "-" : imu.ok ? `OK, ${imu.temp} °C, ${imu.errors} read errors` : "NOT ANSWERING";
-  $("hw-imu").className = imu && !imu.ok ? "bad" : "";
-  const g = t && t.gps;
-  $("hw-gps").textContent = !g ? "-" : g.fix ? `Fix, ${g.sats} satellites` : g.receiving ? `Searching, ${g.sats} satellites` : "No data from module";
-  $("lat").textContent = g && g.fix ? g.lat.toFixed(6) : "-"; $("lon").textContent = g && g.fix ? g.lon.toFixed(6) : "-";
-  $("gspeed").textContent = g && g.speed_kmh !== null && g.speed_kmh !== undefined ? g.speed_kmh.toFixed(1) + " km/h" : "-";
+  ["hw-speed", "hw-zero"].forEach(id => $(id).disabled = !live);
+
+  const sv = t && t.servos ? t.servos[0] : null, side = sv === null ? null : Math.sign(Math.round(sv - servoC)) * ($("steer-swap").checked ? -1 : 1);
+  $("hw-servov").textContent = side === null ? "-" : side < 0 ? "left" : side > 0 ? "right" : "centre";
+  document.querySelectorAll("[data-steer]").forEach(el => { el.disabled = !live || estop; el.classList.toggle("on", side !== null && Number(el.dataset.steer) === side); });
+
+  set("s-link", live ? "connected" : "NOT CONNECTED", live ? "ok" : "bad");
+  set("s-estop", !live ? "-" : estop ? "ACTIVE" : "not active", estop ? "bad" : "");
+  set("s-wd", !live ? "-" : sys.failsafe ? "tripped, motors stopped" : "ok", live && sys.failsafe ? "warn" : "");
+  $("b-reset").hidden = !estop;
+  set("st-link", live ? "connected" : "not connected", live ? "ok" : "bad");
+  set("st-motor", !live ? "-" : estop ? "emergency stop" : moving ? "running" : armed ? "armed" : "disarmed", estop ? "bad" : moving ? "ok" : armed ? "warn" : "");
+  $("hw-wifi").textContent = sys ? `${sys.ip}  ${sys.rssi} dBm` : "-";
+  $("hw-sys").textContent = sys ? `${sys.uptime_s} s` : "-";
+  set("hw-reset", sys ? sys.reset.replace(/_/g, " ") : "-", sys && sys.reset === "brownout" ? "bad" : "");
+  const imu = t && t.imu, g = t && t.gps;
+  set("hw-imu", !imu ? "-" : imu.ok ? `ok  ${imu.temp} °C` : "NOT ANSWERING", imu && !imu.ok ? "bad" : "");
+  $("hw-gps").textContent = !g ? "-" : g.fix ? `fix, ${g.sats} satellites` : g.receiving ? `searching, ${g.sats} satellites` : "no data from module";
+  $("pos").textContent = g && g.fix ? `${g.lat.toFixed(6)}, ${g.lon.toFixed(6)}` : "-";
   if (g && g.fix) { track.push([g.lat, g.lon]); if (track.length > 300) track.shift(); }
   drawTrack(track);
-  // safety panel + top pills
-  const set = (id, text, cls) => { $(id).textContent = text; $(id).className = cls || ""; };
-  set("s-link", live ? "Connected" : "NOT CONNECTED", live ? "ok" : "bad");
-  set("s-estop", !live ? "-" : estop ? "ACTIVE (latched)" : "Not active", estop ? "fault" : "");
-  set("s-wd", !live ? "-" : sys.failsafe ? "TRIPPED: motors stopped" : "OK", live && sys.failsafe ? "warn" : live ? "ok" : "");
-  set("s-arm", !live ? "-" : armed ? "ARMED" : "Disarmed", armed ? "warn" : "");
-  $("b-reset").disabled = !estop;
-  const moving = !!(m && (m.left || m.right));
-  setPill("st-link", live ? "Connected" : "Not connected", live ? "ok" : "bad");
-  setPill("st-motor", !live ? "No data" : estop ? "E-STOP" : moving ? "Running" : armed ? "Armed" : "Disarmed", estop ? "bad" : moving ? "ok" : armed ? "warn" : "");
   $("hw-err").textContent = b.last_error || "-";
 }
-async function pollBoat(){
-  try { renderBoat(await (await fetch("/api/boat")).json()); } catch (e) { /* refresh() shows the server banner */ }
-}
+async function pollBoat(){ try { renderBoat(await (await fetch("/api/boat")).json()); } catch (e) { /* refresh() reports a dead server */ } }
 setInterval(pollBoat, 100); pollBoat();
 
-// Hold-to-drive: the command is repeated while a direction is held; releasing (or leaving the page) stops.
+// Hold-to-drive: the command repeats while a direction is held; releasing (or leaving the page) stops.
 function driveNow(){
   if (!held.size) return;
   const thr = (held.has("f") ? 1 : 0) - (held.has("b") ? 1 : 0), st = (held.has("r") ? 1 : 0) - (held.has("l") ? 1 : 0);
@@ -577,44 +392,25 @@ document.addEventListener("keyup", e => { const k = KEYS[e.key.toLowerCase()]; i
 window.addEventListener("blur", releaseAll);
 document.addEventListener("visibilitychange", () => { if (document.hidden) releaseAll(); });
 $("hw-stop").onclick = () => { held.clear(); boat("stop"); };
-$("hw-arm").onclick = async () => {
-  const j = await boat("arm", {value: !armed});
-  if (!j.ok) say(j.message, false);
-};
-// (the Safety panel has the same release button)
-$("hw-unlatch").onclick = () => { if (confirm("Release the boat's emergency stop?\n\nThe motors stay disarmed until you press Arm.")) boat("estop_reset"); };
+$("hw-arm").onclick = async () => { const j = await boat("arm", {value: !armed}); if (!j.ok) say(j.message); };
 $("hw-zero").onclick = () => { boat("imu_zero"); lastYaw = null; };
 $("hw-speed").onchange = e => { boat("speed", {value: Number(e.target.value) / 100}); e.target.blur(); };
-let servoSent = 0;
-$("hw-servo").oninput = e => { const now = Date.now(); if (now - servoSent > 80) { servoSent = now; boat("servo", {angle: Number(e.target.value)}); } };
-$("hw-servo").onchange = e => { boat("servo", {angle: Number(e.target.value)}); e.target.blur(); };
-document.querySelectorAll("[data-servo]").forEach(el => el.onclick = () => boat("servo", {angle: servoC + Number(el.dataset.servo) * servoL}));
-
-setInterval(() => { $("clock").textContent = new Date().toLocaleTimeString([], {hour12: false}); }, 1000);
+// Rudder: three fixed positions, a small step each side of the centre (servo_limit_deg in the config).
+document.querySelectorAll("[data-steer]").forEach(el => el.onclick = async () => {
+  const j = await boat("servo", {angle: servoC + Number(el.dataset.steer) * ($("steer-swap").checked ? -1 : 1) * servoL});
+  if (!j.ok) say(j.message);
+});
 
 async function refresh(){
   let s;
   try { s = await (await fetch("/api/state")).json(); }
-  catch (e) { $("banner").style.display = "block"; $("banner").textContent = "The dashboard cannot reach its server. Check that run_operator.py is still running."; return; }
-  renderCamera(s.camera);
+  catch (e) { $("alerts").hidden = false; $("alerts").className = "bad"; $("alerts").textContent = "The page cannot reach its server. Check that run_operator.py is still running."; return; }
   servoC = s.config.servo_centre_deg; servoL = s.config.servo_limit_deg;
-  $("hw-servo").min = servoC - servoL; $("hw-servo").max = servoC + servoL;
-  $("banner").style.display = s.estop ? "block" : "none";
-  $("banner").textContent = s.estop ? "EMERGENCY STOP ACTIVE. Motors are off. Release it in the Safety panel, then arm again." : "";
-  $("warnbar").style.display = s.warnings.length ? "block" : "none";
-  $("warnbar").textContent = s.warnings.join("  |  ");
-  const c = s.camera;
-  let cam = ["Not connected", ""];
-  if (c.configured) {
-    cam = c.status === "OK" ? (c.input === "REAL CAMERA" ? ["Live", "ok"] : ["Test input", "warn"])
-        : c.status === "OFF" ? ["Off", ""] : c.status === "CONNECTING" ? ["Connecting", "warn"]
-        : c.status === "STALE" ? ["Frozen", "bad"] : ["Down", "bad"];
-  }
-  setPill("st-cam", cam[0], cam[1]);
-  const n = s.warnings.length;
-  setPill("st-alerts", s.estop ? "E-STOP" : n ? `${n} warning${n > 1 ? "s" : ""}` : "None", s.estop ? "bad" : n ? "warn" : "ok");
+  renderCamera(s.camera);
+  const lines = s.warnings.filter(w => !w.startsWith("CAMERA:"));   // the camera has its own line
+  $("alerts").hidden = !lines.length; $("alerts").className = s.estop ? "bad" : ""; $("alerts").textContent = lines.join("   |   ");
   $("log").innerHTML = s.events.slice().reverse().map(e =>
-    `<li class="${e.level === "fault" ? "fault" : e.level === "warn" ? "warn" : ""}"><time>${new Date(e.time * 1000).toLocaleTimeString()}</time><span>${esc(e.text)}</span></li>`).join("");
+    `<li class="${e.level === "fault" ? "fault" : e.level === "warn" ? "warn" : ""}"><time>${new Date(e.time * 1000).toLocaleTimeString([], {hour12: false})}</time><span>${esc(e.text)}</span></li>`).join("");
 }
 setInterval(refresh, 250); refresh();
 </script>

@@ -19,8 +19,8 @@ Boat ESP32 WebSocket server: ws://172.16.55.105:8000/ws   (firmware: WS_HOST "17
 ## What is on the page
 - **Safety:** link state, emergency stop (button or Esc, latched on the ESP32), command watchdog, armed state. *Release emergency stop* leaves the motors disarmed until *Arm* is pressed again.
 - **Motor control:** *Arm motors*, then hold the arrow buttons or W A S D / arrow keys. Releasing, switching tab or closing the page stops the motors. The keep-alive is only sent while a browser has the page open, so the firmware's 1 s watchdog stops the boat if the laptop goes away.
-- **Rudder servo (GPIO18):** the slider only moves a few degrees each way from the centre (`servo_centre_deg` 90, `servo_limit_deg` 10 by default; change them in a config file, no firmware upload needed).
-- **Boat attitude, live 3D:** follows roll, pitch and yaw from the MPU6050. If it tilts the wrong way for how the sensor is mounted, tick *Invert roll / pitch / yaw* (remembered in the browser) or set `imu_*` in a config file. Yaw is integrated gyro and drifts; *Zero gyro* recalibrates.
+- **Rudder (servo on GPIO18):** three buttons, *Steer left*, *Centre*, *Steer right*. Each side is a small fixed step from the centre (`servo_centre_deg` 90, `servo_limit_deg` 6 by default; change them in a config file, no firmware upload needed). *Swap left and right* if the rudder moves the wrong way.
+- **Boat attitude, live 3D:** follows roll, pitch and yaw from the MPU6050. The defaults match the sensor as mounted on 14 Nov (roll and pitch swapped, yaw inverted). If it tilts the wrong way, tick *Invert roll / pitch / yaw* (remembered in the browser) or set `imu_*` in a config file. Yaw is integrated gyro and drifts; *Zero gyro* recalibrates.
 - **Position:** latitude, longitude, speed and track from the NEO-6M once it has a fix.
 - **Event log:** connections, arming, emergency stops, watchdog stops, tilt warnings, rejected commands.
 

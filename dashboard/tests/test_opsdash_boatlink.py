@@ -98,7 +98,7 @@ def telemetry(roll=0.0, pitch=0.0, yaw=0.0, armed=False, estop=False, left=0.0, 
 
 class BoatLinkTest(unittest.TestCase):
     def setUp(self):
-        self.dash = Dashboard(Config())
+        self.dash = Dashboard(Config(imu_swap_roll_pitch=False, imu_yaw_sign=1, servo_limit_deg=10))
         self.server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(self.dash))
         self.port = self.server.server_address[1]
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
