@@ -1,16 +1,16 @@
-# Judge Q&A Prep - Owner: Person 5
+# Jury questions and factual answers
 
-Replace the directions with facts from our tests. "We did not test that" is a good answer.
+| Question | Answer |
+|---|---|
+| Who is it for? | Harbour maintenance and operations personnel needing preliminary observations. Direct user validation is still needed. |
+| Is it autonomous? | No demonstrated autonomous navigation. The current dashboard provides operator commands and telemetry. |
+| Where does detection run? | On the laptop; the camera ESP32 supplies images. |
+| Does it detect damage? | No. It detects selected visible object classes for operator review. |
+| What physically works? | Camera tests are documented; control-board reports differ between builds. Consult the evidence table rather than claiming full integration. |
+| Does it stop safely? | Stop/watchdog logic is implemented and software-tested; final physical stop behaviour is unverified. |
+| What did AI contribute? | Code, tests, documentation and visualization, with documented human review and corrections. |
+| What did the team correct? | AI-001 records a wrong timeout-test assumption and missing-IMU handling; later detection tests narrowed the default classes. |
+| What is innovative? | A problem-focused integration and documented AI-assisted engineering process; we do not claim to have invented autonomous boats or vision models. |
+| What happens next? | Resolve firmware differences, record controlled bench results, validate the hull in water and interview harbour operators. |
 
-| Topic | Likely question | Honest answer direction |
-|---|---|---|
-| Originality | "Saab already builds autonomous vessels. What is new?" | We do not claim a better autonomous boat. Our contribution: modular inspection payload, safety control separated from mission logic, and a transparent AI-assisted process |
-| Problem | "Is this a real need?" | Quote the mentor (R1); what we learned changed X |
-| Autonomy | "Is it autonomous?" | No - a simulated, supervised mission. Real navigation needs positioning, perception and water trials |
-| Safety | "How do you know it stops?" | T-R8/T-R9 results on the bench; limits: dry bench, not real-world vessel safety |
-| Sensors | "Why these sensors?" | IMU for stability/abnormal motion, pressure for atmospheric conditions, leak for enclosure protection; payload bay for inspection sensors later |
-| Cost | "What would it cost?" | Only sourced component prices; no comparison claims |
-| Regulations | "Could you test this on water?" | Only in an authorised test environment, following the applicable maritime rules |
-| AI use | "How do you know the AI was right?" | The AI log: what it got wrong, how we found it, the retest |
-| Team | "Who did what?" | Each person answers for their part |
-| Next steps | "What would you do with more time?" | pitch-outline.md future development |
+[Evidence](../tests/test-results.md) · [AI log](../docs/ai-process.md) · [Demo guide](demo-script.md)

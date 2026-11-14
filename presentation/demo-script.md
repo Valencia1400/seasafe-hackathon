@@ -1,20 +1,12 @@
-# Demo Script & Readiness Checklist - Owner: Person 5 (script), Person 4 (checklist)
+# Demo guide
 
-Target 60-90 s. Rehearse twice on Sunday, including the fallbacks.
+Use only the setup and firmware whose results have been recorded. The animated product film illustrates the concept; it does not prove physical performance.
 
-| Step | Who | Action | What we say | If it fails |
-|---|---|---|---|---|
-| 1 | P3 | Start an inspection mission on the dashboard | "The operator sends SeaGuardian to inspect the quay after a storm." | Simulator mode |
-| 2 | P2 | Point at live IMU and pressure readings | "The ESP32 streams orientation and atmospheric pressure to the mission computer." | Simulator mode (labelled) |
-| 3 | P4 | Tilt the IMU past 30 deg (or trigger the labelled leak input) | "An abnormal condition - the operator is warned within N s" (measured) | Backup video |
-| 4 | P2 | Press "Cut link" | "If the link is lost, the ESP32 stops the motors on its own after 1 s" (measured) | Backup video |
-| 5 | P1 | Show the CAD assembly and the swappable sensor bay | "This is where the electronics, propulsion and payloads go." | Exported images |
+1. Explain the harbour operator's preliminary-information problem.
+2. Show the printed vessel or photo-based 3D visualization, identifying which is being shown.
+3. Show camera observations and supported object detections. Explain that confidence is not measured accuracy and detections do not diagnose damage.
+4. Show actual connected telemetry if available; otherwise show the disconnected state. Do not invent GPS fixes or IMU readings.
+5. Demonstrate physical controls/stop behaviour only after bench verification of the exact setup. Otherwise explain implementation and remaining testing using the evidence table.
+6. Show one real AI mistake, correction and retest, then the next validation milestone.
 
-## Readiness checklist (Sunday morning)
-- [ ] ESP32 + sensors + bench motors/LEDs wired and tested this morning
-- [ ] Dashboard runs offline on the laptop; simulator mode ready as fallback
-- [ ] CAD file open; exported images as backup
-- [ ] Backup video on laptop AND phone, plays offline
-- [ ] Slides on laptop AND USB stick/phone
-- [ ] test-results.md up to date
-- [ ] Each person knows their step and the fallback
+Before presenting: check [test status](../tests/test-results.md), [integration issues](../docs/integration-status.md) and [Q&A](qa-prep.md). Keep a recording of a genuine test as backup if available; there is no current operational simulator fallback.

@@ -1,33 +1,16 @@
-# Components - Owner: Person 2 (mechanical: Person 1)
+# Components and confirmation status
 
-Fill in what we **actually have**. Dimensions go to Person 1 for the CAD. Costs: only with a source (shop link); otherwise leave blank - no guessed prices in the pitch.
-
-## Electronics
-| Item | Model | Have / Need | Size L x W x H (mm) | Mass (g) | Est. cost + source |
-|---|---|---|---|---|---|
-| ESP32 #1 - camera board | | | | | |
-| ESP32 #2 - control board | | | | | |
-| IMU | | | | | |
-| GPS/GNSS receiver (+ antenna) | | | | | |
-| Pressure sensor (atmospheric) | | | | | |
-| Leak sensor (or test input) | | | | | |
-| Motor driver | | | | | |
-| DC propulsion motor (1) + propeller (no propeller on the bench) | | | | | |
-| Servo for rear rudder (1) | | | | | |
-| Battery / power | | | | | |
-| Cables, connectors | | | | | |
-
-## Mechanical
-| Item | Spec | Have / Need | Notes |
-|---|---|---|---|
-| 3D printer (only for the sensor-bay part, optional) | | | |
-| Fasteners for the sensor bay | | | |
-
-## Tools and software
-CAD tool, Arduino IDE / PlatformIO, Python on the laptop, AI assistants (log each use in ai-process.md).
-
-## Cost summary for the pitch (only sourced prices)
-| Group | Sum | Sources |
+| Component | Current intended configuration | Outstanding evidence |
 |---|---|---|
-| Electronics | | |
-| Mechanical (estimate for a full hull) | | |
+| Camera controller | Seeed XIAO ESP32S3 Sense | Latest UDP firmware board test |
+| Control controller | ESP32 DevKit | Identify final flashed build |
+| IMU | MPU6050 | Mounting/sign validation on final build |
+| GPS | NEO-6M | Stable reception and valid fix |
+| Motor driver | L298N | Motor current and thermal suitability |
+| Propulsion | Two DC motors and two rear propellers | Motor model, voltage and stall/running current |
+| Rudder | One SG90 servo and rear linkage | Safe installed travel |
+| Battery | Proposed three 3.7 V, 2200 mAh cells in series | Actual wiring, ratings and protection confirmation |
+| Logic/servo supply | Regulated 5 V required by intended design | Installed converter and current capability |
+| Hull | Team-reported 3D-printed catamaran | CAD exports, dimensions, fit, sealing and water tests |
+
+Pressure and leak sensors are earlier proposals, not confirmed installed components. No complete bill of materials, verified dimensions or sourced project cost is claimed here. See [integration status](integration-status.md).

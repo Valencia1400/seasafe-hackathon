@@ -1,110 +1,44 @@
-# Architecture and message protocol
+# Current architecture
 
-Owners: Person 2 (both ESP32s, safety) and Person 3 (laptop dashboard). **Freeze the protocol on Friday** so both sides can be built in parallel; any change later goes in decisions.md.
+This page describes the repository implementation at the documentation cleanup. Hardware test status is tracked separately in [test results](../tests/test-results.md); package differences are in [integration status](integration-status.md).
 
-## System overview
-```
- [Laptop]  operator dashboard + simulated mission + event log      (dashboard/)
-   |
-   |-- Wi-Fi (planned) --> [ESP32 #1 - CAMERA]  live video for visual inspection
-   |
-   '-- USB serial today (Wi-Fi planned for an untethered boat), 115200 baud, JSON lines
-        |
-       [ESP32 #2 - CONTROL]  sensors + SAFETY + propulsion + steering   (electronics/firmware/)
-         |-- IMU (roll, pitch, yaw rate)
-         |-- GPS/GNSS receiver (position)
-         |-- Pressure sensor (atmospheric pressure, hPa - label it as such)
-         |-- Leak sensor input
-         |-- Motor driver --> one DC motor --> propeller (bench: no propeller)
-         |-- Servo --> rear rudder (steering / yaw)
-         |-- E-stop button + safety state machine
-         '-- Optional: P controller on yaw rate -> rudder (PID = stretch)
-```
-The laptop and the two ESP32s are the only computers in the design; there is **no voice control** (decision D-007).
-
-**Status of each part (keep honest):**
-| Part | Status |
-|---|---|
-| Two ESP32 boards (camera + control), one DC motor, one rudder servo | Confirmed hardware choice |
-| Laptop dashboard, simulated mission, simulator | Implemented in `dashboard/` (simulator tested, see dashboard/README.md) |
-| Control ESP32 firmware: telemetry, heartbeat, e-stop, leak, comms-loss stop | Written, not yet run on hardware |
-| Camera board firmware (XIAO ESP32S3 Sense) + `vision/` object-detection viewer | Written (Armin); hardware status in vision/README.md. Not yet shown inside the dashboard |
-| GPS reading and coordinates on the dashboard | Planned, not implemented |
-| Rudder servo command | Planned, not implemented (current code still has two motor outputs `l`/`r`, see "Protocol change needed") |
-| P / PID rudder control | Optional, not implemented |
-
-**Camera (separate board):** a XIAO ESP32S3 Sense streams video over Wi-Fi; `vision/viewer.py` runs object detection on it and serves the results to the dashboard. Endpoints and JSON: [vision/INTEGRATION.md](../vision/INTEGRATION.md). The camera has no part in the safety chain.
-
-**Design rules:**
-- The control ESP32 never needs the laptop to be safe. If the laptop crashes, freezes or the link is cut, the ESP32 stops the propulsion motor by itself. The laptop is never the only safety enforcement point.
-- E-stop has the highest priority, above any operator or controller command.
-- The motor and the servo are powered through a motor driver / their own supply, never directly from ESP32 GPIO pins; common ground.
-
-**What the sensors can and cannot tell us:**
-- The IMU gives roll, pitch and **yaw rate** (how fast the boat turns). A standard 6-axis IMU does **not** give drift-free absolute heading.
-- GPS gives **position**. It does not give a reliable heading when the boat is stationary (only course over ground while moving), and position alone is not autonomous navigation.
-- The rear rudder steers (yaw). It does **not** stabilise roll or pitch - we do not claim automatic roll/pitch correction.
-
-## Messages (JSON lines)
-Laptop -> control ESP32
-| Message | Example | Meaning |
+| Component | Input/output | Responsibility |
 |---|---|---|
-| Heartbeat | `{"t":"hb","seq":42}` | Sent every 200 ms. Missing for 1.0 s = comms lost |
-| Motor command | `{"t":"cmd","l":0.3,"r":0.3}` | Motor demand -1.0 ... 1.0. Ignored while in a stop state |
-| Emergency stop | `{"t":"estop"}` | Operator e-stop |
-| Reset | `{"t":"reset"}` | Operator clears a stop state (only if the fault is gone) |
+| Camera ESP32: XIAO ESP32S3 Sense | Wi-Fi video to laptop viewer | Image capture; no onboard YOLO |
+| Laptop: `vision/viewer.py` | Camera stream → annotated stream and `/detections`, normally port 8001 | Object detection and camera processing |
+| Laptop: `dashboard/run_operator.py` | HTTP interface and `/ws`, normally port 8000 | Operator controls, telemetry display and camera integration |
+| Control ESP32 DevKit | WebSocket client → laptop server | Sensors, two motor outputs, rudder servo and safety logic |
 
-Control ESP32 -> laptop (telemetry, 5-10 Hz)
-```
-{"t":"tel","seq":1201,"ms":605123,"roll":2.1,"pitch":-0.4,"p_hpa":1013.2,"leak":0,"l":0.0,"r":0.0,"state":"OK"}
-```
-| Field | Meaning |
+The dashboard displays the viewer's output; it does not open a second connection to the camera's single-client MJPEG stream. Camera detections never command propulsion. The latest camera UDP option is implemented but its board test is still pending.
+
+## Control protocol
+
+The ESP32 initiates `ws://<laptop-LAN-IP>:8000/ws`. Credentials and host belong in ignored `Main/secrets.h`. JSON command and telemetry details are maintained in the [control firmware README](../electronics/firmware/seaguardian_revC/README.md), sections 7–9.
+
+| Operation | JSON command |
 |---|---|
-| `seq` | Counter; gaps = lost messages (used for R4) |
-| `ms` | ESP32 uptime in ms (used to time responses) |
-| `roll`, `pitch` | Degrees from the IMU |
-| `p_hpa` | Atmospheric pressure, hPa |
-| `leak` | 0 dry, 1 wet |
-| `l`, `r` | Motor output actually applied (after safety) |
-| `state` | `OK`, `ESTOP`, `COMMLOST`, `LEAK` |
+| Arm | `{"cmd":"arm","value":true}` |
+| Move | `{"cmd":"move","dir":"forward"}` |
+| Stop | `{"cmd":"stop"}` |
+| Emergency stop | `{"cmd":"estop"}` |
+| Release emergency stop | `{"cmd":"estop_reset"}` |
+| Heartbeat | `{"cmd":"ping"}` |
+| Rudder neutral | `{"cmd":"servo_neutral"}` |
 
-Events ESP32 -> laptop: `{"t":"evt","ms":605200,"evt":"COMMLOST"}` whenever the state changes.
+Telemetry contains `imu`, `gps`, `motors`, `servos`, `batt` and `sys`. Missing sensor values must remain unavailable/null. GPS reception is different from a valid position fix.
 
-### Protocol change needed (PROPOSED - Person 2 + Person 3 must agree before coding)
-The implemented protocol above still uses two motor outputs `l`/`r` from the earlier two-motor assumption. The confirmed hardware is **one propulsion motor + one rudder servo**, so we propose (not implemented yet):
-- Command: `{"t":"cmd","thr":0.3,"rud":-10}` - `thr` propulsion 0.0 ... 1.0 (reverse only if the driver supports it), `rud` rudder angle in degrees (limits set by Person 1 + Person 2 from the mechanism).
-- Telemetry adds: `thr`, `rud` (applied values), `gz` (yaw rate, deg/s), `lat`, `lon`, `fix` (0/1). Missing sensors are sent as `null`, as today.
-- Safety: in every stop state `thr` = 0 (same rules and timings as below, unchanged). Proposed: rudder returns to centre on a stop.
-- Camera: ESP32 #1 serves its own video stream on Wi-Fi; the dashboard shows it by URL. It is not part of the safety chain.
+`move left/right` counter-rotates the motors; `drive.steer` mixes the motor outputs. Rudder commands are separate. The dashboard defaults to 90° ±6° servo travel, while firmware allows a wider range; actual safe mechanical limits await confirmation.
 
-Additions (implemented in the code):
-- A sensor that is not connected is sent as `null` (e.g. `"roll":null`).
-- The simulator adds `"src":"SIM"` to every message; the dashboard then shows SIMULATED.
-- Motor commands are ignored until the first heartbeat after boot; the timeout is only armed after that first heartbeat (so a booting ESP32 does not start in COMMLOST).
-- The comms-loss stop comes 0.8-1.05 s after the link is cut, because the timeout counts from the last heartbeat (sent every 200 ms).
-- ESTOP from the physical button can only be reset once the button is released.
+## Safety behaviour and limits
 
-## ESP32 safety state machine
-```
- OK --estop msg--------> ESTOP    --reset (operator)--> OK
- OK --no hb for 1.0 s--> COMMLOST --hb back + reset---> OK
- OK --leak = 1---------> LEAK     --leak = 0 + reset--> OK
- In every state except OK: motor output = 0, motor commands ignored.
-```
-Tilt > 30 deg is a **warning** shown by the laptop dashboard (R6), not a stop, unless we decide otherwise (log it in decisions.md).
+Arming is required for propulsion. Emergency stop latches and disarms; releasing it does not re-arm. The command watchdog stops motor outputs when commands cease; detected link loss also disarms. These are implemented behaviours requiring hardware verification, not guarantees of physical safety. Watchdog stop and emergency-stop reset rules are different.
 
-## Simulation
-`dashboard/` includes a simulator that sends the same ESP32 telemetry, so the dashboard can be built before the hardware works. **Anything shown from the simulator is labelled SIMULATED on screen.**
+Current GitHub firmware serializes motor output writes and reapplies safe outputs while emergency stop is latched. Heritage's supplied package lacks these integration changes; do not overwrite them during reconciliation.
 
-## Mechanical layout (Person 1)
-Two hulls joined by a deck; sealed electronics bay in the centre (control ESP32, motor driver, battery, GPS); camera ESP32 with a clear view forward; **one** propeller mount for the DC motor; **rear rudder** with a servo mount and linkage; sensor bay at the bow with a standard interface (size, fixing, cable pass-through) so payloads can be swapped.
+The LAN server has no login. Use a trusted local network. A software stop cannot remove battery power or protect against every driver/wiring failure.
 
-| Interface | Decision | Owner |
-|---|---|---|
-| Electronics bay inner size | | P1 <- P2 |
-| Sensor bay interface (size, fixing, connector) | | P1 + P2 |
-| Propulsion mount (motor diameter, fixing, shaft/propeller position) | | P1 <- P2 |
-| Rudder + servo mount (servo size, linkage, angle limits) | | P1 + P2 |
-| Camera mount (field of view, window/sealing) | | P1 + P2 |
-| GPS antenna position (needs open sky view) | | P1 + P2 |
-| Cable pass-through / sealing approach | | P1 |
+## Mechanical and sensing scope
+
+Two hulls, central electronics, two rear submerged propellers providing horizontal thrust, and a rear rudder. This is a surface vessel, not an underwater ROV. Enclosure sealing and buoyancy remain unverified.
+
+MPU6050 roll/pitch are gravity-referenced; integrated yaw drifts. GPS positioning does not establish autonomous navigation. The rudder does not stabilize roll/pitch. Pressure/leak sensing, PID and interchangeable-payload performance are not demonstrated current features. There is no Raspberry Pi or voice control.

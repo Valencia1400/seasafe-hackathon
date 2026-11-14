@@ -1,49 +1,13 @@
-# AI Engineering Log (Prompt-to-Product)
+# AI-assisted engineering evidence
 
-This is our evidence that AI **accelerated** the engineering and that we **verified** it instead of trusting it. Log every meaningful AI use (a line is enough; screenshots go in Discord and are linked here). Owners: Person 3 + Person 5. Everyone adds entries.
+AI contributed code, tests, documentation and visualization. A committed output is not proof that a human reviewed it or that hardware worked. Original prompts are retained where available; missing prompts are not reconstructed as historical facts.
 
-## Raw logs vs. this file
-Raw, per-person records go in [`ai-log/`](ai-log/README.md) (automatic with the `ai-logger` mod in Claude Code, by hand otherwise). This file is the **curated** log: Persons 3 and 5 copy the meaningful entries here, with verification filled in.
+## Historical verified record
 
-## How to log an entry
-Copy the template, fill it in right after the AI use. Be honest about errors - mistakes caught are the best evidence.
-
-```
-### AI-### - <short title>
-- Time / person / task:
-- AI tool + model:
-- Prompt (paste or link):
-- Result (what the AI produced):
-- Human verification (what we checked and how - measurement, test, review by whom):
-- Errors / limitations found:
-- Changes made afterwards:
-- Linked requirement / issue / commit:
-```
-
-## Design iteration procedure (use for the R11 showpiece)
-Requirement -> AI-generated design -> human review -> physical or simulated test -> revised design -> repeated test.
-
-1. **Requirement:** write the requirement ID and target.
-2. **AI-generated design:** prompt the AI with the requirement + parameter table; save the prompt and output (commit as `v1`).
-3. **Human review:** the owner (P1 for CAD, P2 for firmware, P3 for dashboard) plus Person 4 review it; list every issue found (also those the AI missed).
-4. **Test:** physical or simulated; record in tests/test-results.md.
-5. **Revised design:** feed the *measured* result back to the AI, ask for a change, review it, commit as `v2`. State exactly which parameter changed and why.
-6. **Repeat test:** same procedure, same conditions. Record before/after numbers.
-7. **Log it here** as one linked chain of entries, and add a row to the iteration log in cad/README.md.
-
-## Summary of AI use (update at the end)
-| Area | What AI did | What humans verified | Time saved (estimated - say "estimated") |
-|---|---|---|---|
-| CAD | | | |
-| Firmware (ESP32) | | | |
-| Dashboard (laptop) | | | |
-| Testing | | | |
-| Docs / pitch | | | |
-
-## Entries
+The following entry describes an earlier simulator implementation. Its 14-test count and 842 ms observation do not describe the current dashboard or a physical motor stop.
 
 ### AI-001 - Dashboard software and simulator: wrong assumption about the comms-loss timing
-- Time / person / task: Fri 13 Nov, Person 3 with Claude Code (Fable 5.2), dashboard + ESP32 simulator
+- Time / person / task: Fri 13 Nov, Software/product lead with Claude Code (Fable 5.2), dashboard + ESP32 simulator
 - AI tool + model: Claude Code, Claude Fable 5.2
 - Prompt: "Write the ESP32 safety firmware and the dashboard with simulator" (following docs/architecture.md)
 - Result: Python controller, simulated ESP32, dashboard, 13 unit tests; ESP32 Arduino firmware.
@@ -53,14 +17,21 @@ Requirement -> AI-generated design -> human review -> physical or simulated test
 - Still unverified: the firmware has not been compiled or run on an ESP32.
 - Linked: R8, R9, R11
 
-> **The entry below is an EXAMPLE of the format. It is NOT real work that was done.** Delete it when the first real entry is added.
 
-### EXAMPLE-1 - First CAD part from a requirement *(example, not real)*
-- Time / person / task: Fri 14:00, Person 1, part v1
-- AI tool + model: (example) an AI assistant
-- Prompt: "Write a parametric OpenSCAD model for <part> with these dimensions as variables: ... Print time must stay under 3 hours."
-- Result: A model file with the requested variables.
-- Human verification: Opened in slicer, checked dimensions and print time, checked wall >= 2x nozzle width.
-- Errors / limitations: Two parts did not fit - clearance was zero. The AI had not been told about print tolerance.
-- Changes made afterwards: Added a `clearance` parameter = 0.3 mm; re-prompted with the printer tolerance.
-- Linked: R2, R3, R11
+## Additional commit evidence
+
+| Activity | Commit | Evidence and limits |
+|---|---|---|
+| Camera connection correction | [4cc3389](https://github.com/Valencia1400/seasafe-hackathon/commit/4cc3389) | Reports hotspot-name correction and real-camera test |
+| Camera integration validation | [8ca3cac](https://github.com/Valencia1400/seasafe-hackathon/commit/8ca3cac) | Mock-viewer freshness/validation tests |
+| Narrowing weak detection classes | [02601ec](https://github.com/Valencia1400/seasafe-hackathon/commit/02601ec) | Reports 64-photo evaluation; not field accuracy |
+| Control firmware integration | [703dfe1](https://github.com/Valencia1400/seasafe-hackathon/commit/703dfe1) | Stop-race/recovery fixes and reported host tests |
+| Removing operational simulation | [06a3305](https://github.com/Valencia1400/seasafe-hackathon/commit/06a3305) | Real telemetry reported; final hardware identity needs reconciliation |
+| Congested-network camera update | [4300b86](https://github.com/Valencia1400/seasafe-hackathon/commit/4300b86) | UDP code and software tests; board test pending |
+| Photo-based visualization | [7d5904f](https://github.com/Valencia1400/seasafe-hackathon/commit/7d5904f) | Approximate Three.js model; not CAD validation |
+
+These commits record AI co-authorship; model names are repository-recorded labels, not independently authenticated. Commit authorship does not establish who ran every test. Full original prompts for these entries are not present in the inspected raw-log directory.
+
+The [electronics activity log](../electronics/firmware/seaguardian_revC/ACTIVITY_LOG.md) provides additional version-specific history. Heritage's separately supplied rev D history awaits reconciliation before inclusion.
+
+New entries should state task, original prompt/reference, tool/model, output, human review, test, failure, correction, retest and linked commit. Keep failures and distinguish emulator, host and physical evidence.

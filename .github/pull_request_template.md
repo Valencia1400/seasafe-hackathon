@@ -1,11 +1,11 @@
-## What changed
-<!-- one or two sentences -->
+## Change
 
-## Related issue / requirement
-Closes #  / Requirement ID:
+Describe the problem and resulting behaviour.
 
-## Checked
-- [ ] Only touched my own folder
-- [ ] If CAD: STL exported and slicer-checked, parameter table updated
-- [ ] If AI helped: entry added to docs/ai-process.md or docs/ai-log/
-- [ ] Nothing here claims more than we tested
+## Validation
+
+State the checks run and their results. Distinguish software tests, emulator tests and physical tests; identify hardware/build when relevant.
+
+## Evidence and limitations
+
+Link requirements, AI review/correction records and remaining issues. Do not claim more than was verified.
