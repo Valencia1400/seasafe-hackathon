@@ -1,5 +1,12 @@
 # SeaGuardian – animated product film
 
+## Download the finished files
+
+- [Standalone MP4 film (1080p, about 100 seconds, about 60 MB)](seaguardian-film.mp4) — includes narration, music and effects; plays without a local server.
+- [MP3 voiceover](audio/narration.mp3) — narration only.
+
+The MP4 is also linked from the [repository home page](../../README.md).
+
 Everything is generated in the browser with Three.js and canvas drawing. There is no real-world footage, no screen recording and no
 third-party video or music: the only supplied media is the narration (`audio/narration.mp3`, ElevenLabs).
 The vessel is the photo-based reconstruction from `boat.js` (Three.js r160 is vendored in `vendor/`).
@@ -18,12 +25,12 @@ Keys: Space play/pause, ← → ±1 s, C hide the player bar. `?hq` previews at 
 
 1. Start the server (`start.bat` or the command above).
 2. Open http://localhost:8770/film/cinematic.html?export (or press **Export MP4** in the player).
-3. It renders all frames one by one, encodes H.264 + AAC with the browser's WebCodecs and writes
-   **`presentation/film/out/seaguardian-film.mp4`** (about 1.5–3 minutes; needs Chrome or Edge).
+3. It renders all frames one by one and writes an H.264 + AAC MP4 to `out/seaguardian-film.mp4` (about 60 MB; needs Chrome or Edge).
+4. The ready-to-play file committed for direct download is `seaguardian-film.mp4` in this folder. When you regenerate the film, copy the new file from `out/` here after checking playback.
 4. Check the result: `python presentation/film/tools/check_mp4.py presentation/film/out/seaguardian-film.mp4`
    and http://localhost:8770/film/tools/verify.html (plays the file back and writes `out/verify.jpg`).
 
-`out/` is git-ignored (the MP4 is about 140 MB).
+`out/` is git-ignored as a temporary export workspace. The checked-in MP4 uses a 5 Mb/s H.264 video stream and is about 60 MB, under GitHub's 100 MB per-file limit.
 
 ### Timing: the narration is the master clock
 

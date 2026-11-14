@@ -316,7 +316,7 @@ async function exportMp4(onProgress = () => {}) {
   const vS = [], aS = []; let avcC = null, cs = null, asc = null, err = null;
   const venc = new VideoEncoder({ output: (ch, meta) => { const d = new Uint8Array(ch.byteLength); ch.copyTo(d); vS.push({ data: d, key: ch.type === 'key', ts: ch.timestamp });
     if (meta?.decoderConfig?.description) { avcC = toU8(meta.decoderConfig.description); cs = meta.decoderConfig.colorSpace || null; } }, error: (e) => { err = e; } });
-  venc.configure({ codec: 'avc1.640028', width: W, height: H, bitrate: 14_000_000, framerate: FPS, avc: { format: 'avc' }, latencyMode: 'quality' });
+  venc.configure({ codec: 'avc1.640028', width: W, height: H, bitrate: 5_000_000, framerate: FPS, avc: { format: 'avc' }, latencyMode: 'quality' });
   const N = Math.round(DUR * FPS), t0 = performance.now();
   for (let f = 0; f < N && !err; f++) {
     frame(f / FPS); cg.drawImage(glCanvas, 0, 0, W, H); cg.drawImage(ovCanvas, 0, 0);

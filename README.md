@@ -15,6 +15,13 @@ After storms or incidents, harbour operators need information to decide where fu
 - [Demo and jury Q&A](presentation/demo-script.md)
 - [Unresolved electronics reconciliation](docs/integration-status.md)
 
+## Download the product film
+
+- [MP4 video, 1080p (about 100 seconds, about 60 MB)](https://github.com/Valencia1400/seasafe-hackathon/raw/refs/heads/main/presentation/film/seaguardian-film.mp4?download=1) — the film with its narration and sound mix.
+- [MP3 voiceover](https://github.com/Valencia1400/seasafe-hackathon/raw/refs/heads/main/presentation/film/audio/narration.mp3?download=1) — narration only.
+
+Both files can be opened or downloaded directly from GitHub. The MP4 plays without running the local film server.
+
 ## What we built
 
 The team reports a 3D-printed twin-hull prototype with two rear propellers and a rear rudder. The intended propellers are submerged and provide horizontal thrust. The repository includes control and camera firmware, a laptop vision viewer, an operator dashboard, software tests and an approximate photo-based Three.js visualization.
@@ -66,6 +73,6 @@ Three active roles cover the work: mechanical/CAD; electrical/embedded (Heritage
 | `cad/` | Mechanical status and outstanding design evidence |
 | `tests/` | Current test plan and evidence overview |
 | `docs/` | Architecture, requirements, decisions, research and AI evidence |
-| `presentation/` | Factual pitch, demo and jury questions |
+| `presentation/` | Pitch, jury materials and the downloadable product film |
 
 [Development workflow](docs/workflow.md) · [Risks](docs/risks.md) · [Decision history](docs/decisions.md)
