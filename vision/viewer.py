@@ -2,6 +2,7 @@
 
   python viewer.py                                   # boat camera at http://seasafe-cam.local:81/stream
   python viewer.py --source http://192.168.4.1:81/stream
+  python viewer.py --source udp://172.20.10.2        # same camera over UDP: no freezes on crowded Wi-Fi
   python viewer.py --source 0                        # laptop webcam, no boat needed (src = "webcam")
   python viewer.py --source clip.mp4                 # recorded video, loops (src = "file")
 
@@ -9,6 +10,8 @@ Then open http://127.0.0.1:8001/ . Endpoints and JSON format for the dashboard: 
 """
 import argparse
 import json
+import socket
+import struct
 import threading
 import time
 import urllib.request
@@ -59,11 +62,49 @@ def mjpeg_frames(stream):
             yield jpg
 
 
+def udp_frame(state, pkt):
+    """Feed one camera datagram (b"SC", frame id u16, chunk index u8, chunk count u8, JPEG bytes).
+
+    Returns the whole JPEG when its last chunk arrives, else None. A frame with a lost chunk is dropped
+    as soon as a datagram of another frame shows up: skipping a frame beats waiting for it.
+    """
+    if len(pkt) < 7 or pkt[:2] != b"SC":
+        return None
+    fid, idx, count = struct.unpack("<HBB", pkt[2:6])
+    if idx >= count:
+        return None
+    if state.get("id") != fid:
+        state.update(id=fid, parts={})
+    state["parts"][idx] = pkt[6:]
+    if len(state["parts"]) < count:
+        return None
+    jpg = b"".join(state["parts"][i] for i in range(count))
+    state["parts"] = {}
+    return jpg
+
+
 def read_camera(source, cam):
     """Feed frames from the source into cam forever; reconnect every 2 s when it drops."""
     while True:
         try:
-            if source.startswith("http"):
+            if source.startswith("udp://"):
+                host, _, port = source[6:].partition(":")
+                with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+                    sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 1 << 20)  # a frame arrives as a burst
+                    sock.settimeout(1)
+                    state, hello = {}, 0.0
+                    while True:
+                        if time.time() - hello > 1:  # the camera streams to whoever said hello in the last 3 s
+                            sock.sendto(b"hello", (host, int(port or 8082)))
+                            hello = time.time()
+                        try:
+                            jpg = udp_frame(state, sock.recv(2048))
+                        except socket.timeout:
+                            continue
+                        frame = jpg and cv2.imdecode(np.frombuffer(jpg, np.uint8), cv2.IMREAD_COLOR)
+                        if frame is not None:
+                            cam.put(frame)
+            elif source.startswith("http"):
                 with urllib.request.urlopen(source, timeout=5) as resp:
                     for jpg in mjpeg_frames(resp):
                         frame = cv2.imdecode(np.frombuffer(jpg, np.uint8), cv2.IMREAD_COLOR)
@@ -156,7 +197,7 @@ def main():
     ap.add_argument("--port", type=int, default=8001)
     args = ap.parse_args()
 
-    src = "esp32" if args.source.startswith("http") else "webcam" if args.source.isdigit() else "file"
+    src = "esp32" if args.source.startswith(("http", "udp")) else "webcam" if args.source.isdigit() else "file"
     cam = Hub()
     out = Hub((None, {"t": "det", "seq": 0, "src": src, "cam": "DOWN", "dets": []}))
     threading.Thread(target=read_camera, args=(args.source, cam), daemon=True).start()
