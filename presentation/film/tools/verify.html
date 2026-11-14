@@ -1,0 +1,24 @@
+<!doctype html><meta charset="utf-8"><title>verify mp4</title>
+<body style="font:14px monospace;background:#111;color:#ddd"><pre id="o">working…</pre><video id="v" src="../out/seaguardian-film.mp4" muted preload="auto" style="width:480px"></video>
+<script type="module">
+// Plays back the exported MP4 with the browser's own decoder: checks duration and size, grabs frames into out/verify.jpg and decodes the audio track.
+const v = document.getElementById('v'), o = document.getElementById('o'), res = {};
+try {
+  await new Promise((r, j) => { v.onloadedmetadata = r; v.onerror = () => j(new Error('video error ' + (v.error && v.error.message))); });
+  Object.assign(res, { duration: v.duration, width: v.videoWidth, height: v.videoHeight });
+  const times = (new URLSearchParams(location.search).get('t') || '2,8,20,33,42,50,60,72,81,88,96,99').split(',').map(Number), cols = 4, tw = 480, th = 270;
+  const c = document.createElement('canvas'); c.width = cols * tw; c.height = Math.ceil(times.length / cols) * th; const g = c.getContext('2d');
+  for (let i = 0; i < times.length; i++) { v.currentTime = times[i]; await new Promise((r) => { v.onseeked = r; });
+    await new Promise((r) => { if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(r); setTimeout(r, 400); });
+    const X = (i % cols) * tw, Y = Math.floor(i / cols) * th; g.drawImage(v, X, Y, tw, th); g.fillStyle = '#000a'; g.fillRect(X, Y, 64, 20); g.fillStyle = '#fff'; g.font = '13px sans-serif'; g.fillText(times[i] + 's', X + 5, Y + 15); }
+  await fetch('/__save?name=verify.jpg', { method: 'POST', body: await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.85)) });
+  res.framesGrabbed = times.length;
+  const buf = await (await fetch('../out/seaguardian-film.mp4')).arrayBuffer(); res.bytes = buf.byteLength;
+  const a = await new OfflineAudioContext(2, 1, 48000).decodeAudioData(buf); const L = a.getChannelData(0), sr = a.sampleRate;
+  const rms = (t0, t1) => { let s = 0, n = 0; for (let i = Math.floor(t0 * sr); i < Math.min(L.length, t1 * sr); i++) { s += L[i] * L[i]; n++; } return +(20 * Math.log10(Math.max(1e-7, Math.sqrt(s / n)))).toFixed(1); };
+  let peak = 0; for (let i = 0; i < L.length; i++) peak = Math.max(peak, Math.abs(L[i]));
+  Object.assign(res, { audioSeconds: a.duration, audioChannels: a.numberOfChannels, audioRate: sr, peakDb: +(20 * Math.log10(peak)).toFixed(1),
+    rmsDb: { '0-0.5 (lead-in)': rms(0, 0.5), '0.7-2.2 (first words)': rms(0.7, 2.2), '30-36': rms(30, 36), '78-82': rms(78, 82), '97.5-99.5 (after narration)': rms(97.5, 99.5) } });
+} catch (e) { res.error = String(e); }
+window.RESULT = res; o.textContent = JSON.stringify(res, null, 1); document.title = 'done';
+</script>

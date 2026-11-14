@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SeaGuardian – cinematic film</title>
+<style>
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; background:#02060c; color:#d6e6f2; font-family:"Segoe UI",system-ui,sans-serif; overflow:hidden; }
+  #wrap { position:fixed; inset:0 0 54px 0; overflow:hidden; }
+  body.clean #wrap { bottom:0; }
+  #stage { position:absolute; left:50%; top:50%; width:1920px; height:1080px; margin:-540px 0 0 -960px; transform-origin:center center; background:#050d18; }
+  #stage canvas { position:absolute; left:0; top:0; width:1920px; height:1080px; display:block; }
+  #ui { position:fixed; left:0; right:0; bottom:0; height:54px; display:flex; align-items:center; gap:14px; padding:0 18px; background:#050b13; border-top:1px solid #12263a; font-size:13px; color:#9fb7cc; }
+  body.clean #ui { display:none; }
+  #ui button { font:inherit; padding:7px 14px; border-radius:8px; border:1px solid #23415e; background:#0b1a2b; color:#d6e6f2; cursor:pointer; }
+  #ui button:disabled { opacity:.45; cursor:default; }
+  #seek { flex:1; accent-color:#38bdf0; } #clock { min-width:110px; text-align:right; font-feature-settings:"tnum"; } #status { min-width:240px; }
+</style>
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.js" } }</script>
+</head>
+<body>
+<div id="wrap"><div id="stage"><canvas id="gl"></canvas><canvas id="ov" width="1920" height="1080"></canvas></div></div>
+<div id="ui">
+  <button id="bPlay" disabled>Play ▸</button><button id="bRestart" disabled>⟲ Restart</button>
+  <input id="seek" type="range" min="0" max="100" step="0.01" value="0">
+  <span id="clock">0:00.0</span><span id="status">Preparing sound…</span>
+  <button id="bExport" disabled title="Renders every frame and writes film/out/seaguardian-film.mp4">Export MP4</button>
+</div>
+<script type="module" src="./cinematic.js"></script>
+</body>
+</html>
