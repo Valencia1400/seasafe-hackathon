@@ -313,12 +313,12 @@
 
   <section class="panel" aria-labelledby="h-servo">
     <h2 id="h-servo">Servo and controller <span class="chip plain">GPIO18</span></h2>
-    <div class="row"><span>Servo angle</span><b id="hw-servov">-</b></div>
-    <input type="range" id="hw-servo" min="0" max="180" step="1" value="90" aria-label="Servo angle in degrees">
+    <div class="row"><span>Rudder servo</span><b id="hw-servov">-</b></div>
+    <input type="range" id="hw-servo" min="80" max="100" step="1" value="90" aria-label="Servo angle in degrees">
     <div class="buttons">
-      <button class="small" data-servo="45">45&deg;</button>
-      <button class="small" data-servo="90">Centre 90&deg;</button>
-      <button class="small" data-servo="135">135&deg;</button>
+      <button class="small port" data-servo="-1">Port</button>
+      <button class="small" data-servo="0">Centre</button>
+      <button class="small stbd" data-servo="1">Starboard</button>
     </div>
     <div style="margin-top:8px">
       <div class="row"><span>Controller</span><b id="hw-sys">-</b></div>
@@ -481,6 +481,7 @@ $("model").innerHTML =
   cuboid(26, 22, 14, -52, 8, -92, "#b3202d") + cuboid(26, 22, 14, 52, 8, -92, "#12865a") +
   cuboid(130, 6, 96, 0, -6, 0, "#2b5d86") + cuboid(52, 26, 56, 0, -22, 6, "#1c6f94") + cuboid(16, 12, 12, 0, -24, -28, "#38bdf0");
 const track = [];
+let servoC = 90, servoL = 10;
 let hw = null, yawShown = 0, lastYaw = null, armed = false;
 const held = new Set(), INV = ["roll", "pitch", "yaw"];
 INV.forEach(k => { const el = $("inv-" + k); el.checked = localStorage.getItem("inv-" + k) === "1"; el.onchange = () => localStorage.setItem("inv-" + k, el.checked ? "1" : "0"); });
@@ -519,7 +520,7 @@ function renderBoat(b){
   $("hw-speedv").textContent = m ? Math.round(m.limit * 100) + " %" : "-";
   const sv = t && t.servos && t.servos[0];
   if (sv !== undefined && sv !== null && document.activeElement !== $("hw-servo")) $("hw-servo").value = sv;
-  $("hw-servov").textContent = sv === undefined || sv === null ? "-" : sv + "°";
+  $("hw-servov").textContent = sv === undefined || sv === null ? "-" : `${sv - servoC >= 0 ? "+" : ""}${sv - servoC}° from centre (${sv}°)`;
   ["hw-speed", "hw-servo", "hw-zero"].forEach(id => $(id).disabled = !live);
   document.querySelectorAll("[data-servo]").forEach(el => el.disabled = !live || estop);
   $("hw-sys").textContent = sys ? `up ${sys.uptime_s} s, last reset ${sys.reset}` : "-";
@@ -587,7 +588,7 @@ $("hw-speed").onchange = e => { boat("speed", {value: Number(e.target.value) / 1
 let servoSent = 0;
 $("hw-servo").oninput = e => { const now = Date.now(); if (now - servoSent > 80) { servoSent = now; boat("servo", {angle: Number(e.target.value)}); } };
 $("hw-servo").onchange = e => { boat("servo", {angle: Number(e.target.value)}); e.target.blur(); };
-document.querySelectorAll("[data-servo]").forEach(el => el.onclick = () => boat("servo", {angle: Number(el.dataset.servo)}));
+document.querySelectorAll("[data-servo]").forEach(el => el.onclick = () => boat("servo", {angle: servoC + Number(el.dataset.servo) * servoL}));
 
 setInterval(() => { $("clock").textContent = new Date().toLocaleTimeString([], {hour12: false}); }, 1000);
 
@@ -596,6 +597,8 @@ async function refresh(){
   try { s = await (await fetch("/api/state")).json(); }
   catch (e) { $("banner").style.display = "block"; $("banner").textContent = "The dashboard cannot reach its server. Check that run_operator.py is still running."; return; }
   renderCamera(s.camera);
+  servoC = s.config.servo_centre_deg; servoL = s.config.servo_limit_deg;
+  $("hw-servo").min = servoC - servoL; $("hw-servo").max = servoC + servoL;
   $("banner").style.display = s.estop ? "block" : "none";
   $("banner").textContent = s.estop ? "EMERGENCY STOP ACTIVE. Motors are off. Release it in the Safety panel, then arm again." : "";
   $("warnbar").style.display = s.warnings.length ? "block" : "none";

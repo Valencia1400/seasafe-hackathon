@@ -19,7 +19,7 @@ Boat ESP32 WebSocket server: ws://172.16.55.105:8000/ws   (firmware: WS_HOST "17
 ## What is on the page
 - **Safety:** link state, emergency stop (button or Esc, latched on the ESP32), command watchdog, armed state. *Release emergency stop* leaves the motors disarmed until *Arm* is pressed again.
 - **Motor control:** *Arm motors*, then hold the arrow buttons or W A S D / arrow keys. Releasing, switching tab or closing the page stops the motors. The keep-alive is only sent while a browser has the page open, so the firmware's 1 s watchdog stops the boat if the laptop goes away.
-- **Servo:** slider 0-180 degrees (GPIO18).
+- **Rudder servo (GPIO18):** the slider only moves a few degrees each way from the centre (`servo_centre_deg` 90, `servo_limit_deg` 10 by default; change them in a config file, no firmware upload needed).
 - **Boat attitude, live 3D:** follows roll, pitch and yaw from the MPU6050. If it tilts the wrong way for how the sensor is mounted, tick *Invert roll / pitch / yaw* (remembered in the browser) or set `imu_*` in a config file. Yaw is integrated gyro and drifts; *Zero gyro* recalibrates.
 - **Position:** latitude, longitude, speed and track from the NEO-6M once it has a fix.
 - **Event log:** connections, arming, emergency stops, watchdog stops, tilt warnings, rejected commands.
@@ -27,6 +27,12 @@ Boat ESP32 WebSocket server: ws://172.16.55.105:8000/ws   (firmware: WS_HOST "17
 The page has no login and listens on the whole network: anyone on the same Wi-Fi can open it and drive. Use a network you trust, or `--host 127.0.0.1` when no boat is needed.
 
 Without hardware, `python tests/test_opsdash_boatlink.py 127.0.0.1 8000` connects a stand-in ESP32 (firmware name `FAKE-not-hardware`) so the page can be tried. It is a test tool, not part of the dashboard.
+
+## If the boat keeps disconnecting
+Look at the event log and the Servo and controller panel:
+- **"RESTARTED (cause: brownout)"** or *last reset brownout*: the ESP32's supply voltage dips when the motors or servo draw current. This is wiring, not Wi-Fi: power the ESP32 from its own 5 V source (USB power bank or a separate buck converter), not from the L298N's 5 V pin; join all grounds; put a 470-1000 uF capacitor across 5 V and GND at the ESP32 and at the servo.
+- **"disconnected: no data for 10 s"** or many reconnects while the motors run: electrical noise or weak Wi-Fi. Solder a 100 nF capacitor across each motor's terminals, keep motor wires short and twisted and away from the ESP32's antenna, and move closer to the access point.
+- **"watchdog stopped the motors"**: commands did not arrive for 1 s. Keep the dashboard tab in front (browsers slow down background tabs).
 
 ## Camera panel
 - **Video:** the viewer's annotated `/stream.mjpg`, shown by the browser. The dashboard never opens the ESP32 stream (it serves one client only).
@@ -49,7 +55,7 @@ Without hardware, `python tests/test_opsdash_boatlink.py 127.0.0.1 8000` connect
 ```bash
 python run_operator.py --config my_config.json     # {"tilt_warning_deg": 25, "imu_pitch_sign": -1}
 ```
-Keys: `tilt_warning_deg`, `imu_roll_sign`, `imu_pitch_sign`, `imu_yaw_sign`, `imu_swap_roll_pitch`, `camera_viewer_url`.
+Keys: `servo_centre_deg`, `servo_limit_deg`, `tilt_warning_deg`, `imu_roll_sign`, `imu_pitch_sign`, `imu_yaw_sign`, `imu_swap_roll_pitch`, `camera_viewer_url`.
 
 ## Files
 | File | What it is |

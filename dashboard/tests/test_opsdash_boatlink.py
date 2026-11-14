@@ -160,11 +160,11 @@ class BoatLinkTest(unittest.TestCase):
     def test_operator_commands_are_forwarded_in_the_firmware_format(self):
         self.connect()
         for name, body in (("boat-arm", {"value": True}), ("boat-drive", {"throttle": 1, "steer": -0.5}),
-                           ("boat-servo", {"angle": 120}), ("boat-speed", {"value": 0.7}), ("boat-stop", None)):
+                           ("boat-servo", {"angle": 95}), ("boat-speed", {"value": 0.7}), ("boat-stop", None)):
             self.assertTrue(self.post(name, body)["ok"], name)
         got = [c for c in self.esp.recv_cmds(0.3) if c["cmd"] != "ping"]
         self.assertEqual(got, [{"cmd": "arm", "value": True}, {"cmd": "drive", "throttle": 1.0, "steer": -0.5},
-                               {"cmd": "servo", "angle": 120}, {"cmd": "speed", "value": 0.7}, {"cmd": "stop"}])
+                               {"cmd": "servo", "angle": 95}, {"cmd": "speed", "value": 0.7}, {"cmd": "stop"}])
 
     def test_values_are_clamped_and_garbage_is_refused(self):
         self.connect()
@@ -173,7 +173,7 @@ class BoatLinkTest(unittest.TestCase):
         self.assertFalse(self.post("boat-drive", {"throttle": 1})["ok"])
         self.assertFalse(self.post("boat-nonsense")["ok"])
         got = [c for c in self.esp.recv_cmds(0.3) if c["cmd"] != "ping"]
-        self.assertEqual(got, [{"cmd": "servo", "angle": 180}])
+        self.assertEqual(got, [{"cmd": "servo", "angle": 100}], "servo stays inside centre +/- servo_limit_deg")
 
     def test_keepalive_only_while_a_browser_is_polling(self):
         self.connect()

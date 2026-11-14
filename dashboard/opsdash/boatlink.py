@@ -14,15 +14,16 @@ Safety, as far as the laptop is involved (the firmware enforces its own rules):
 import base64
 import hashlib
 import json
+import socket
 import struct
 import threading
 import time
 
 WS_GUID = b"258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 PING_PERIOD_S = 0.2        # keep-alive rate (firmware watchdog is 1.0 s)
-BROWSER_TIMEOUT_S = 1.0    # no page polling for this long -> stop sending keep-alives
+BROWSER_TIMEOUT_S = 2.0    # no page polling for this long -> stop sending keep-alives (tolerates a laggy Wi-Fi)
 STALE_S = 1.5              # no telemetry for this long -> shown as not connected
-SOCKET_TIMEOUT_S = 5.0     # a silent socket is closed (telemetry normally arrives at 10 Hz)
+SOCKET_TIMEOUT_S = 10.0    # a silent socket is closed (telemetry normally arrives at 10 Hz; Wi-Fi stalls of a few seconds are ridden out)
 MAX_FRAME = 16384
 
 
@@ -86,6 +87,7 @@ class BoatLink:
             return
         sock = handler.connection
         sock.settimeout(SOCKET_TIMEOUT_S)
+        sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)   # small command frames must not wait
         sock.sendall(("HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
                       f"Sec-WebSocket-Accept: {accept_key(key)}\r\n\r\n").encode())
         with self._lock:
@@ -103,7 +105,7 @@ class BoatLink:
                 raise ConnectionError("closed")
             return data
 
-        parts = []
+        parts, why = [], "the ESP32 closed the connection"
         try:
             while self.running:
                 fin, op, data = read_frame(read)
@@ -116,6 +118,8 @@ class BoatLink:
                     if fin:
                         self._on_text(b"".join(parts))
                         parts = []
+        except (TimeoutError, socket.timeout):
+            why = f"no data from the ESP32 for {SOCKET_TIMEOUT_S:.0f} s"
         except (OSError, ValueError, ConnectionError):
             pass
         finally:
@@ -124,7 +128,7 @@ class BoatLink:
                 if mine:
                     self._sock = None
             if mine:
-                self._log("Boat ESP32 disconnected (its firmware stops and disarms the motors on link loss)", "warn")
+                self._log(f"Boat ESP32 disconnected: {why} (its firmware stops and disarms the motors on link loss)", "warn")
 
     def _on_text(self, raw):
         try:
@@ -179,7 +183,8 @@ class BoatLink:
             elif name == "speed":
                 cmd = {"cmd": "speed", "value": _num(body, "value", 0.1, 1)}
             elif name == "servo":
-                cmd = {"cmd": "servo", "angle": round(_num(body, "angle", 0, 180))}
+                c, lim = (self.cfg.servo_centre_deg, self.cfg.servo_limit_deg) if self.cfg else (90, 90)
+                cmd = {"cmd": "servo", "angle": round(_num(body, "angle", c - lim, c + lim))}   # never beyond the rudder's travel
             elif name in ("stop", "estop", "estop_reset", "servo_neutral", "imu_zero"):
                 cmd = {"cmd": name}
             else:

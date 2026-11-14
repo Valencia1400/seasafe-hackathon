@@ -35,6 +35,13 @@ class OperatorConsole:
         """Called for every telemetry frame from the ESP32: log state changes once."""
         sys_, motors, imu = msg.get("sys") or {}, msg.get("motors") or {}, msg.get("imu") or {}
         estop, failsafe, armed, imu_ok = bool(sys_.get("estop")), bool(sys_.get("failsafe")), bool(motors.get("armed")), bool(imu.get("ok"))
+        uptime = sys_.get("uptime_s") or 0
+        if uptime < self._last.get("uptime", 0):
+            self._last.clear()
+            why = sys_.get("reset")
+            self.log(f"Boat ESP32 RESTARTED (cause: {why})" + (": the supply voltage dipped, this is a power wiring problem, not Wi-Fi"
+                                                                 if why == "brownout" else ""), "fault")
+        self._last["uptime"] = uptime
         if self._changed("estop", estop):
             self.log("Boat reports EMERGENCY STOP latched; motors off" if estop else "Boat emergency stop released (still disarmed)",
                      "fault" if estop else "info")
@@ -61,6 +68,8 @@ class OperatorConsole:
         else:
             if sys_.get("estop"):
                 warnings.append("EMERGENCY STOP ACTIVE")
+            if sys_.get("reset") == "brownout":
+                warnings.append("ESP32 RESTARTED AFTER A BROWN-OUT: its power supply dips when the motors or servo draw current")
             if sys_.get("failsafe"):
                 warnings.append("WATCHDOG STOP: no command reached the boat for 1.0 s")
             if not imu.get("ok"):

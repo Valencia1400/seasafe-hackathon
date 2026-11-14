@@ -19,8 +19,8 @@
 #define WS_USE_TLS              0                  // 1 = wss:// (certificate is NOT verified), 0 = ws://
 #define WS_RECONNECT_MS         2000               // retry interval while the server is unreachable
 #define WS_PING_INTERVAL_MS     5000               // protocol-level ping to detect a dead server
-#define WS_PONG_TIMEOUT_MS      2000
-#define WS_PING_FAILS_TO_DROP   2
+#define WS_PONG_TIMEOUT_MS      3000
+#define WS_PING_FAILS_TO_DROP   4                  // tolerant: motor noise costs Wi-Fi packets; the command watchdog is the safety net
 
 // ---------------- Pins ----------------
 // L298N (remove the ENA and ENB jumpers so the ESP32 can drive them with PWM)
@@ -44,7 +44,7 @@
 #define MOTOR_PWM_RES_BITS      8     // duty 0..255
 #define MOTOR_MAX_DUTY          255   // hard upper limit (lower it to limit motor voltage/current)
 #define MOTOR_MIN_DUTY          0     // duty at which the motor just starts turning (0 = no compensation)
-#define MOTOR_SLEW_PER_S        2.0f  // output may change by this much per second (0 -> full in 0.5 s). 0 = no ramp
+#define MOTOR_SLEW_PER_S        1.0f  // output change per second (0 -> full in 1 s). Gentle on the supply: a fast start caused brown-outs. 0 = no ramp
 #define MOTOR_LEFT_INVERT       0     // 1 = swap direction in software instead of swapping the motor wires
 #define MOTOR_RIGHT_INVERT      0
 #define MOTOR_TURN_RATIO        0.6f  // "move left/right": motors counter-rotate at speed x this ratio

@@ -2,7 +2,7 @@
 
 Override any value with a JSON file:
     python run_operator.py --config my_config.json
-    {"tilt_warning_deg": 25, "imu_pitch_sign": -1}
+    {"servo_centre_deg": 92, "servo_limit_deg": 8, "imu_pitch_sign": -1}
 """
 import json
 from dataclasses import asdict, dataclass, fields
@@ -12,6 +12,9 @@ from dataclasses import asdict, dataclass, fields
 class Config:
     # Roll/pitch beyond this shows a tilt warning (a warning, not a stop).
     tilt_warning_deg: float = 30.0
+    # Rudder servo: the page can only move it this far each way from the centre (degrees at the servo).
+    servo_centre_deg: float = 90.0
+    servo_limit_deg: float = 10.0
     # IMU mounting: maps raw sensor values to the vessel frame
     # (vessel frame: roll + = starboard side down, pitch + = bow up, yaw rate + = turning to starboard).
     # The page also has Invert roll / pitch / yaw tick boxes for quick changes.
@@ -26,6 +29,9 @@ class Config:
     def validate(self):
         if self.tilt_warning_deg <= 0:
             raise ValueError("tilt_warning_deg must be positive")
+        if not (0 < self.servo_limit_deg <= 90 and 0 <= self.servo_centre_deg - self.servo_limit_deg
+                and self.servo_centre_deg + self.servo_limit_deg <= 180):
+            raise ValueError("servo_centre_deg +/- servo_limit_deg must stay inside 0..180")
         for name in ("imu_roll_sign", "imu_pitch_sign", "imu_yaw_sign"):
             if getattr(self, name) not in (1, -1):
                 raise ValueError(f"{name} must be 1 or -1")
